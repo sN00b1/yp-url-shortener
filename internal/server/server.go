@@ -31,11 +31,12 @@ func saveURL(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	urlHash := makeHash(url)
-	if urlHash != "" {
+	if urlHash == "" {
 		http.Error(writer, "Cannot generate url", 500)
+		return
 	}
 	Urls[urlHash] = string(url)
-	writer.Write([]byte("http://localhost:8080" + urlHash))
+	writer.Write([]byte("http://localhost:8080/" + urlHash))
 	fmt.Println("added url: ", urlHash)
 }
 
