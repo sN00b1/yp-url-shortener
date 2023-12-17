@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"errors"
 	"hash/fnv"
 	"strconv"
 )
@@ -16,7 +15,7 @@ func (g HashGenerator) MakeHash(s string) (string, error) {
 	h := fnv.New32a()
 	_, err := h.Write([]byte(s))
 	if err != nil {
-		return "", errors.New("Making hash error")
+		return "", err
 	}
 	return strconv.Itoa(int(h.Sum32())), nil
 }
