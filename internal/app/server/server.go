@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
@@ -10,20 +11,23 @@ type Server struct {
 	handler *handlers.Handler
 }
 
-func NewServer() *Server {
+func NewServer(h *handlers.Handler) *Server {
 	return &Server{
-		handler: handlers.NewHandler(),
+		handler: h,
 	}
 }
 
-func (server *Server) ShortenerHandler(writer http.ResponseWriter, request *http.Request) {
-	switch request.Method {
-	case http.MethodGet:
-		server.handler.GetURL(writer, request)
-	case http.MethodPost:
-		server.handler.SaveURL(writer, request)
-	default:
-		http.Error(writer, "Unsupported method", http.StatusMethodNotAllowed)
-		return
+func (server *Server) Run() {
+	httpServer := &http.Server{
+		Addr:    "localhost:8080",
+		Handler: server.Handler(),
 	}
+	log.Fatal(httpServer.ListenAndServe())
+}
+
+func (server *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	h := server.handler.ShortenerHandler()
+	mux.HandleFunc("/", h)
+	return mux
 }

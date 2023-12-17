@@ -1,17 +1,22 @@
 package tools
 
 import (
-	"fmt"
+	"errors"
 	"hash/fnv"
 	"strconv"
 )
 
-func MakeHash(s []byte) string {
+type Generator interface {
+	MakeHash(s string) (string, error)
+}
+
+type HashGenerator struct{}
+
+func (g HashGenerator) MakeHash(s string) (string, error) {
 	h := fnv.New32a()
-	_, err := h.Write(s)
+	_, err := h.Write([]byte(s))
 	if err != nil {
-		fmt.Println("makeHash error")
-		return ""
+		return "", errors.New("Making hash error")
 	}
-	return strconv.Itoa(int(h.Sum32()))
+	return strconv.Itoa(int(h.Sum32())), nil
 }

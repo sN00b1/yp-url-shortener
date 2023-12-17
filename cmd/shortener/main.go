@@ -1,18 +1,16 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-
+	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
 	"github.com/sN00b1/yp-url-shortener/internal/app/server"
+	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
+	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 )
 
 func main() {
-	server := server.NewServer()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", server.ShortenerHandler)
-	err := http.ListenAndServe("localhost:8080", mux)
-	if err != nil {
-		fmt.Println("ListenAndServe error: ", err)
-	}
+	g := tools.HashGenerator{}
+	s := storage.NewStorage()
+	h := handlers.NewHandler(s, g)
+	server := server.NewServer(h)
+	server.Run()
 }

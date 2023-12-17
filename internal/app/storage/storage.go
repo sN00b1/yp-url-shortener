@@ -4,6 +4,11 @@ import (
 	"errors"
 )
 
+type Repository interface {
+	Save(url, hash string) error
+	Get(hash string) (string, error)
+}
+
 type Storage struct {
 	ramStorage map[string]string
 }
