@@ -42,7 +42,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusInternalServerError,
-				body:        "Cannot generate url",
+				body:        "cannot generate url",
 			},
 			request: "/",
 			method:  http.MethodPost,
@@ -64,7 +64,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusNotFound,
-				body:        "Can't find url by hash",
+				body:        "cant find url by hash",
 			},
 			request: "/",
 			method:  http.MethodGet,
@@ -75,7 +75,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusNotFound,
-				body:        "Can't find url by hash",
+				body:        "cant find url by hash",
 			},
 			request: "/missing",
 			method:  http.MethodGet,
@@ -86,7 +86,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusMethodNotAllowed,
-				body:        "Unsupported method",
+				body:        "unsupported method",
 			},
 			request: "/asd",
 			method:  http.MethodDelete,
