@@ -10,10 +10,10 @@ import (
 
 type Server struct {
 	handler *handlers.Handler
-	cfg     *config.Config
+	cfg     *config.ServerConfig
 }
 
-func NewServer(h *handlers.Handler, cfg *config.Config) *Server {
+func NewServer(h *handlers.Handler, cfg *config.ServerConfig) *Server {
 	return &Server{
 		handler: h,
 		cfg:     cfg,
@@ -22,7 +22,7 @@ func NewServer(h *handlers.Handler, cfg *config.Config) *Server {
 
 func (server *Server) Run() {
 	router := handlers.NewRouter(server.handler)
-	addr := server.cfg.Host + ":" + server.cfg.Port
+	addr := server.cfg.ServerAddr
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: router,

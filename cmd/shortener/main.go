@@ -11,13 +11,14 @@ import (
 )
 
 func main() {
-	hostFlag := flag.String("host", "", "host ip address")
-	portFlag := flag.String("port", "", "host port")
+	addrFlag := flag.String("a", "", "host addr")
+	urlFlag := flag.String("b", "", "handler base url")
 	flag.Parse()
-	c := config.NewConfig(*hostFlag, *portFlag)
+	addr := config.NewServerConfig(*addrFlag)
+	url := config.NewHandlerConfig(*urlFlag)
 	g := tools.HashGenerator{}
 	s := storage.NewStorage()
-	h := handlers.NewHandler(s, g, c)
-	server := server.NewServer(h, &c)
+	h := handlers.NewHandler(s, g, url)
+	server := server.NewServer(h, &addr)
 	server.Run()
 }

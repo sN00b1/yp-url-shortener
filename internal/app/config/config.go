@@ -1,21 +1,29 @@
 package config
 
-type Config struct {
-	Port string
-	Host string
+type ServerConfig struct {
+	ServerAddr string
 }
 
-func NewConfig(hostFlag, portFlag string) Config {
-	host := hostFlag
-	port := portFlag
-	if host == "" {
-		host = "localhost"
+type HandlerConfig struct {
+	HandlerUrl string
+}
+
+func NewHandlerConfig(urlFlag string) HandlerConfig {
+	url := urlFlag
+	if url == "" {
+		url = "http://localhost:8080"
 	}
-	if port == "" {
-		port = "8080"
+	return HandlerConfig{
+		HandlerUrl: url,
 	}
-	return Config{
-		Host: host,
-		Port: port,
+}
+
+func NewServerConfig(addrFlag string) ServerConfig {
+	addr := addrFlag
+	if addr == "" {
+		addr = "localhost:8080"
+	}
+	return ServerConfig{
+		ServerAddr: addr,
 	}
 }

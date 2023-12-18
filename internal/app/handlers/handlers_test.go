@@ -112,7 +112,7 @@ func TestRouter(t *testing.T) {
 
 			request := httptest.NewRequest(tt.method, tt.request, strings.NewReader(tt.body))
 			writer := httptest.NewRecorder()
-			cfg := config.NewConfig("", "")
+			cfg := config.NewHandlerConfig("")
 			handler := NewHandler(mockStorage, mockGenerator, cfg)
 			r := NewRouter(handler)
 			r.ServeHTTP(writer, request)

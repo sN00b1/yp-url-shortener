@@ -17,10 +17,10 @@ type Handler struct {
 	storage   storage.Repository
 	generator tools.Generator
 	mux       *chi.Mux
-	cfg       config.Config
+	cfg       config.HandlerConfig
 }
 
-func NewHandler(s storage.Repository, g tools.Generator, c config.Config) *Handler {
+func NewHandler(s storage.Repository, g tools.Generator, c config.HandlerConfig) *Handler {
 	return &Handler{
 		storage:   s,
 		generator: g,
@@ -48,7 +48,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	writer.WriteHeader(http.StatusCreated)
-	result := fmt.Sprintf("http://%s:%s/%s", handler.cfg.Host, handler.cfg.Port, hash)
+	result := fmt.Sprintf("%s/%s", handler.cfg.HandlerUrl, hash)
 	_, err = writer.Write([]byte(result))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
