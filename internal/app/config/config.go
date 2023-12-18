@@ -14,7 +14,7 @@ func NewHandlerConfig(urlFlag string) HandlerConfig {
 		url = "http://localhost:8080"
 	}
 	return HandlerConfig{
-		HandlerUrl: url,
+		HandlerURL: url,
 	}
 }
 
