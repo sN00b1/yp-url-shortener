@@ -29,7 +29,7 @@ func (handler *Handler) ShortenerHandler() http.HandlerFunc {
 		case http.MethodPost:
 			handler.saveURL(writer, request)
 		default:
-			http.Error(writer, "Unsupported method", http.StatusMethodNotAllowed)
+			http.Error(writer, "unsupported method", http.StatusMethodNotAllowed)
 			return
 		}
 	}
@@ -44,7 +44,7 @@ func (handler *Handler) saveURL(writer http.ResponseWriter, request *http.Reques
 
 	hash, err := handler.generator.MakeHash(string(url))
 	if hash == "" {
-		http.Error(writer, "Cannot generate url", http.StatusInternalServerError)
+		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
 	handler.storage.Save(string(url), hash)
@@ -70,7 +70,7 @@ func (handler *Handler) getURL(writer http.ResponseWriter, request *http.Request
 	}
 
 	if url == "" {
-		http.Error(writer, "Can't find url by hash", http.StatusNotFound)
+		http.Error(writer, "cant find url by hash", http.StatusNotFound)
 	}
 
 	http.Redirect(writer, request, url, http.StatusTemporaryRedirect)
