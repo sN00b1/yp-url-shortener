@@ -48,7 +48,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	writer.WriteHeader(http.StatusCreated)
-	result := fmt.Sprintf("%s/%s", handler.cfg.HandlerUrl, hash)
+	result := fmt.Sprintf("%s/%s", handler.cfg.HandlerURL, hash)
 	_, err = writer.Write([]byte(result))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
