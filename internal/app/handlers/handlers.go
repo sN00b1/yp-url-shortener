@@ -48,7 +48,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	writer.WriteHeader(http.StatusCreated)
-	result := fmt.Sprintf("%s:%s/%s", handler.cfg.Host, handler.cfg.Port, hash)
+	result := fmt.Sprintf("http://%s:%s/%s", handler.cfg.Host, handler.cfg.Port, hash)
 	_, err = writer.Write([]byte(result))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -76,8 +76,8 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Route("/", func(router chi.Router) {
-		router.Get("/{id}", handler.Shorten)
-		router.Post("/", handler.Expand)
+		router.Get("/{id}", handler.Expand)
+		router.Post("/", handler.Shorten)
 	})
 	return router
 }

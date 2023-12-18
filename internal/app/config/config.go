@@ -6,14 +6,16 @@ type Config struct {
 }
 
 func NewConfig(hostFlag, portFlag string) Config {
-	if hostFlag == "" {
-		hostFlag = "http://localhost"
+	host := hostFlag
+	port := portFlag
+	if host == "" {
+		host = "localhost"
 	}
-	if portFlag == "" {
-		portFlag = "8080"
+	if port == "" {
+		port = "8080"
 	}
 	return Config{
-		Host: hostFlag,
-		Port: portFlag,
+		Host: host,
+		Port: port,
 	}
 }

@@ -13,10 +13,11 @@ import (
 func main() {
 	hostFlag := flag.String("host", "", "host ip address")
 	portFlag := flag.String("port", "", "host port")
+	flag.Parse()
 	c := config.NewConfig(*hostFlag, *portFlag)
 	g := tools.HashGenerator{}
 	s := storage.NewStorage()
 	h := handlers.NewHandler(s, g, c)
-	server := server.NewServer(h)
+	server := server.NewServer(h, &c)
 	server.Run()
 }
