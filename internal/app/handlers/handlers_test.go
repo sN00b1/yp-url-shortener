@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sN00b1/yp-url-shortener/internal/app/config"
 	"github.com/sN00b1/yp-url-shortener/internal/app/mocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -111,7 +112,8 @@ func TestRouter(t *testing.T) {
 
 			request := httptest.NewRequest(tt.method, tt.request, strings.NewReader(tt.body))
 			writer := httptest.NewRecorder()
-			handler := NewHandler(mockStorage, mockGenerator)
+			cfg := config.NewConfig("", "")
+			handler := NewHandler(mockStorage, mockGenerator, cfg)
 			r := NewRouter(handler)
 			r.ServeHTTP(writer, request)
 			result := writer.Result()

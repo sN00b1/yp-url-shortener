@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/sN00b1/yp-url-shortener/internal/app/config"
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 )
@@ -15,12 +17,15 @@ type Handler struct {
 	storage   storage.Repository
 	generator tools.Generator
 	mux       *chi.Mux
+	cfg       config.Config
 }
 
-func NewHandler(s storage.Repository, g tools.Generator) *Handler {
+func NewHandler(s storage.Repository, g tools.Generator, c config.Config) *Handler {
 	return &Handler{
 		storage:   s,
 		generator: g,
+		mux:       chi.NewMux(),
+		cfg:       c,
 	}
 }
 
@@ -43,7 +48,8 @@ func (handler *Handler) SaveURL(writer http.ResponseWriter, request *http.Reques
 	}
 
 	writer.WriteHeader(http.StatusCreated)
-	_, err = writer.Write([]byte("http://localhost:8080/" + hash))
+	result := fmt.Sprintf("%s:%s/%s", handler.cfg.Host, handler.cfg.Port, hash)
+	_, err = writer.Write([]byte(result))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
