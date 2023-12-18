@@ -5,7 +5,7 @@ type ServerConfig struct {
 }
 
 type HandlerConfig struct {
-	HandlerUrl string
+	HandlerURL string
 }
 
 func NewHandlerConfig(urlFlag string) HandlerConfig {
