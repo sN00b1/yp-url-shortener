@@ -1,25 +1,43 @@
 package config
 
+import (
+	"os"
+)
+
 type ServerConfig struct {
 	ServerAddr string
 }
 
 type HandlerConfig struct {
-	HandlerUrl string
+	HandlerURL string
 }
 
 func NewHandlerConfig(urlFlag string) HandlerConfig {
-	url := urlFlag
+	var url string
+	urlOS := os.Getenv("BASE_URL")
+	if urlFlag != "" {
+		url = urlFlag
+	}
+	if urlOS != "" {
+		url = urlOS
+	}
 	if url == "" {
 		url = "http://localhost:8080"
 	}
 	return HandlerConfig{
-		HandlerUrl: url,
+		HandlerURL: url,
 	}
 }
 
 func NewServerConfig(addrFlag string) ServerConfig {
-	addr := addrFlag
+	var addr string
+	addrOS := os.Getenv("SERVER_ADDRESS")
+	if addrFlag != "" {
+		addr = addrFlag
+	}
+	if addrOS != "" {
+		addr = addrOS
+	}
 	if addr == "" {
 		addr = "localhost:8080"
 	}
