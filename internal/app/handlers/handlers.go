@@ -29,7 +29,7 @@ func NewHandler(s storage.Repository, g tools.Generator, c config.Config) *Handl
 	}
 }
 
-func (handler *Handler) SaveURL(writer http.ResponseWriter, request *http.Request) {
+func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Request) {
 	url, err := io.ReadAll(request.Body)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func (handler *Handler) SaveURL(writer http.ResponseWriter, request *http.Reques
 	}
 }
 
-func (handler *Handler) GetURL(writer http.ResponseWriter, request *http.Request) {
+func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
 	hash := strings.TrimPrefix(request.URL.Path, "/")
 	url, err := handler.storage.Get(hash)
 
@@ -76,8 +76,8 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Route("/", func(router chi.Router) {
-		router.Get("/{id}", handler.GetURL)
-		router.Post("/", handler.SaveURL)
+		router.Get("/{id}", handler.Shorten)
+		router.Post("/", handler.Expand)
 	})
 	return router
 }
