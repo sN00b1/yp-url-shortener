@@ -18,16 +18,10 @@ func NewServer(h *handlers.Handler) *Server {
 }
 
 func (server *Server) Run() {
+	router := handlers.NewRouter(server.handler)
 	httpServer := &http.Server{
 		Addr:    "localhost:8080",
-		Handler: server.Handler(),
+		Handler: router,
 	}
 	log.Fatal(httpServer.ListenAndServe())
-}
-
-func (server *Server) Handler() http.Handler {
-	mux := http.NewServeMux()
-	h := server.handler.ShortenerHandler()
-	mux.HandleFunc("/", h)
-	return mux
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShortenerHandler(t *testing.T) {
+func TestRouter(t *testing.T) {
 	type want struct {
 		contentType string
 		statusCode  int
@@ -42,7 +42,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusInternalServerError,
-				body:        "Cannot generate url",
+				body:        "cannot generate url",
 			},
 			request: "/",
 			method:  http.MethodPost,
@@ -62,9 +62,9 @@ func TestShortenerHandler(t *testing.T) {
 		{
 			name: "get with null id",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  http.StatusNotFound,
-				body:        "Can't find url by hash",
+				contentType: "",
+				statusCode:  http.StatusMethodNotAllowed,
+				body:        "",
 			},
 			request: "/",
 			method:  http.MethodGet,
@@ -75,7 +75,7 @@ func TestShortenerHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusNotFound,
-				body:        "Can't find url by hash",
+				body:        "cant find url by hash",
 			},
 			request: "/missing",
 			method:  http.MethodGet,
@@ -84,9 +84,9 @@ func TestShortenerHandler(t *testing.T) {
 		{
 			name: "not supported method",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
+				contentType: "",
 				statusCode:  http.StatusMethodNotAllowed,
-				body:        "Unsupported method",
+				body:        "",
 			},
 			request: "/asd",
 			method:  http.MethodDelete,
@@ -112,8 +112,8 @@ func TestShortenerHandler(t *testing.T) {
 			request := httptest.NewRequest(tt.method, tt.request, strings.NewReader(tt.body))
 			writer := httptest.NewRecorder()
 			handler := NewHandler(mockStorage, mockGenerator)
-			h := handler.ShortenerHandler()
-			h.ServeHTTP(writer, request)
+			r := NewRouter(handler)
+			r.ServeHTTP(writer, request)
 			result := writer.Result()
 
 			defer result.Body.Close()
