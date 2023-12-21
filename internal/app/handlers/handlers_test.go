@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sN00b1/yp-url-shortener/internal/app/config"
-	"github.com/sN00b1/yp-url-shortener/internal/app/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,13 +93,13 @@ func TestRouter(t *testing.T) {
 		},
 	}
 
-	mockStorage := new(mocks.MockStorage)
+	mockStorage := new(MockStorage)
 	mockStorage.On("Get", "id").Return("url", nil)
 	mockStorage.On("Get", "").Return("", nil)
 	mockStorage.On("Get", "missing").Return("", nil)
 	mockStorage.On("Get", "error").Return("", errors.New("error text"))
 
-	mockGenerator := new(mocks.MockGenerator)
+	mockGenerator := new(MockGenerator)
 	mockGenerator.On("MakeHash", "url").Return("id", nil)
 	mockGenerator.On("MakeHash", "").Return("", errors.New("err"))
 	mockGenerator.On("MakeHash", "error_on_shortening").Return("", errors.New("err"))
@@ -112,8 +110,8 @@ func TestRouter(t *testing.T) {
 
 			request := httptest.NewRequest(tt.method, tt.request, strings.NewReader(tt.body))
 			writer := httptest.NewRecorder()
-			cfg := config.NewHandlerConfig("")
-			handler := NewHandler(mockStorage, mockGenerator, cfg)
+			cfg := NewHandlerConfig("")
+			handler := NewHandler(mockStorage, mockGenerator, *cfg)
 			r := NewRouter(handler)
 			r.ServeHTTP(writer, request)
 			result := writer.Result()

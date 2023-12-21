@@ -8,19 +8,16 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/sN00b1/yp-url-shortener/internal/app/config"
-	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
-	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 )
 
 type Handler struct {
-	storage   storage.Repository
-	generator tools.Generator
+	storage   Repository
+	generator Generator
 	mux       *chi.Mux
-	cfg       config.HandlerConfig
+	cfg       HandlerConfig
 }
 
-func NewHandler(s storage.Repository, g tools.Generator, c config.HandlerConfig) *Handler {
+func NewHandler(s Repository, g Generator, c HandlerConfig) *Handler {
 	return &Handler{
 		storage:   s,
 		generator: g,
@@ -73,7 +70,6 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 
 func NewRouter(handler *Handler) chi.Router {
 	router := chi.NewRouter()
-	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Route("/", func(router chi.Router) {
 		router.Get("/{id}", handler.Expand)

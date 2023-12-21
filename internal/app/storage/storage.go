@@ -2,15 +2,12 @@ package storage
 
 import (
 	"errors"
+	"sync"
 )
-
-type Repository interface {
-	Save(url, hash string) error
-	Get(hash string) (string, error)
-}
 
 type Storage struct {
 	ramStorage map[string]string
+	mutex      sync.RWMutex
 }
 
 func NewStorage() *Storage {
@@ -24,12 +21,19 @@ func (storage *Storage) Save(url, hash string) error {
 	if ok {
 		return errors.New("hash already used")
 	}
+
+	storage.mutex.RLock()
 	storage.ramStorage[hash] = url
+	storage.mutex.RUnlock()
+
 	return nil
 }
 
 func (storage *Storage) Get(hash string) (string, error) {
+	storage.mutex.RLock()
 	url, ok := storage.ramStorage[hash]
+	storage.mutex.RUnlock()
+
 	if !ok {
 		return "", errors.New("cant find url by hash")
 	}

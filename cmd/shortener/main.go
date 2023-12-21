@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/sN00b1/yp-url-shortener/internal/app/config"
 	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
 	"github.com/sN00b1/yp-url-shortener/internal/app/server"
@@ -11,14 +9,12 @@ import (
 )
 
 func main() {
-	addrFlag := flag.String("a", "", "host addr")
-	urlFlag := flag.String("b", "", "handler base url")
-	flag.Parse()
-	addr := config.NewServerConfig(*addrFlag)
-	url := config.NewHandlerConfig(*urlFlag)
+	cfg := config.New()
+	addr := cfg.ServerConfig
+	url := cfg.HandlerConfig
 	g := tools.HashGenerator{}
 	s := storage.NewStorage()
-	h := handlers.NewHandler(s, g, url)
-	server := server.NewServer(h, &addr)
+	h := handlers.NewHandler(s, &g, *url)
+	server := server.NewServer(h, addr)
 	server.Run()
 }

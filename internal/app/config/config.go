@@ -1,47 +1,22 @@
 package config
 
 import (
-	"os"
+	"flag"
+
+	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
+	"github.com/sN00b1/yp-url-shortener/internal/app/server"
 )
 
-type ServerConfig struct {
-	ServerAddr string
+type Config struct {
+	ServerConfig  *server.ServerConfig
+	HandlerConfig *handlers.HandlerConfig
 }
 
-type HandlerConfig struct {
-	HandlerURL string
-}
-
-func NewHandlerConfig(urlFlag string) HandlerConfig {
-	var url string
-	urlOS := os.Getenv("BASE_URL")
-	if urlFlag != "" {
-		url = urlFlag
-	}
-	if urlOS != "" {
-		url = urlOS
-	}
-	if url == "" {
-		url = "http://localhost:8080"
-	}
-	return HandlerConfig{
-		HandlerURL: url,
-	}
-}
-
-func NewServerConfig(addrFlag string) ServerConfig {
-	var addr string
-	addrOS := os.Getenv("SERVER_ADDRESS")
-	if addrFlag != "" {
-		addr = addrFlag
-	}
-	if addrOS != "" {
-		addr = addrOS
-	}
-	if addr == "" {
-		addr = "localhost:8080"
-	}
-	return ServerConfig{
-		ServerAddr: addr,
+func New() *Config {
+	addrFlag := flag.String("a", "", "host addr")
+	urlFlag := flag.String("b", "", "handler base url")
+	return &Config{
+		ServerConfig:  server.NewServerConfig(*addrFlag),
+		HandlerConfig: handlers.NewHandlerConfig(*urlFlag),
 	}
 }

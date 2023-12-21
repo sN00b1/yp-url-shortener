@@ -4,16 +4,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/sN00b1/yp-url-shortener/internal/app/config"
 	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
 )
 
 type Server struct {
 	handler *handlers.Handler
-	cfg     *config.ServerConfig
+	cfg     *ServerConfig
 }
 
-func NewServer(h *handlers.Handler, cfg *config.ServerConfig) *Server {
+func NewServer(h *handlers.Handler, cfg *ServerConfig) *Server {
 	return &Server{
 		handler: h,
 		cfg:     cfg,
