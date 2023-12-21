@@ -15,6 +15,7 @@ type Config struct {
 func New() *Config {
 	addrFlag := flag.String("a", "", "host addr")
 	urlFlag := flag.String("b", "", "handler base url")
+	flag.Parse()
 	return &Config{
 		ServerConfig:  server.NewServerConfig(*addrFlag),
 		HandlerConfig: handlers.NewHandlerConfig(*urlFlag),
