@@ -91,6 +91,17 @@ func TestRouter(t *testing.T) {
 			method:  http.MethodDelete,
 			body:    "",
 		},
+		{
+			name: "json parsing test",
+			want: want{
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+				body:        `{"result":"http://localhost:8080/id"}`,
+			},
+			request: "/api/shorten",
+			method:  http.MethodPost,
+			body:    `{"url": "url"}`,
+		},
 	}
 
 	mockStorage := new(MockStorage)
