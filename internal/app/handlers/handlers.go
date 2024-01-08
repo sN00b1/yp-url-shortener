@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 )
 
 type Handler struct {
@@ -73,7 +72,7 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 
 func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *http.Request) {
 	type inputStruct struct {
-		OriginalURL string `json:"original_url"`
+		OriginalURL string `json:"url"`
 	}
 	var input inputStruct
 	type outputStruct struct {
@@ -88,8 +87,9 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	}
 	if err = json.Unmarshal(buf.Bytes(), &input); err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
 	}
-
+	fmt.Println("12345678:", input.OriginalURL)
 	hash, err := handler.generator.MakeHash(string(input.OriginalURL))
 	if hash == "" {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
@@ -120,7 +120,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 func NewRouter(handler *Handler) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
-	router.Use(loggin.LogginResponse)
+	//router.Use(loggin.LogginResponse)
 	router.Route("/", func(router chi.Router) {
 		router.Get("/{id}", handler.Expand)
 		router.Post("/", handler.Shorten)

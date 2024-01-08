@@ -96,11 +96,11 @@ func TestRouter(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusCreated,
-				body:        `{"result": "http://localhost:8080/id}`,
+				body:        `{"result":"http://localhost:8080/id"}`,
 			},
 			request: "/api/shorten",
 			method:  http.MethodPost,
-			body:    `{"url": "https://practicum.yandex.ru"}`,
+			body:    `{"url": "url"}`,
 		},
 	}
 
