@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 )
 
 func TestRouter(t *testing.T) {
@@ -92,6 +94,8 @@ func TestRouter(t *testing.T) {
 			body:    "",
 		},
 	}
+
+	loggin.InitLogger()
 
 	mockStorage := new(MockStorage)
 	mockStorage.On("Get", "id").Return("url", nil)
