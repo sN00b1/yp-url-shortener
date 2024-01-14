@@ -32,7 +32,9 @@ func NewHandler(s Repository, g Generator, c HandlerConfig) *Handler {
 }
 
 func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Request) {
-	url, err := io.ReadAll(request.Body)
+	r, err := decompresedReader(request)
+
+	url, err := io.ReadAll(r)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -85,7 +87,9 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	var output outputStruct
 	var buf bytes.Buffer
 
-	_, err := buf.ReadFrom(request.Body)
+	r, err := decompresedReader(request)
+
+	_, err = buf.ReadFrom(r)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 	}
