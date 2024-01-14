@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/sN00b1/yp-url-shortener/internal/app/encoding"
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 )
 
 type Handler struct {
@@ -75,6 +78,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		OriginalURL string `json:"url"`
 	}
 	var input inputStruct
+
 	type outputStruct struct {
 		Result string `json:"result"`
 	}
@@ -89,7 +93,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println("12345678:", input.OriginalURL)
+
 	hash, err := handler.generator.MakeHash(string(input.OriginalURL))
 	if hash == "" {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
@@ -117,10 +121,20 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	}
 }
 
+func decompresedReader(r *http.Request) (io.Reader, error) {
+	if r.Header.Get("Content-Encoding") == "gzip" &&
+		(r.Header.Get("Content-Type") == "application/json" ||
+			r.Header.Get("Content-Type") == "text/html") {
+		return gzip.NewReader(r.Body)
+	}
+	return r.Body, nil
+}
+
 func NewRouter(handler *Handler) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
-	//router.Use(loggin.LogginResponse)
+	router.Use(loggin.LogginResponse)
+	router.Use(encoding.CompressHandle)
 	router.Route("/", func(router chi.Router) {
 		router.Get("/{id}", handler.Expand)
 		router.Post("/", handler.Shorten)
