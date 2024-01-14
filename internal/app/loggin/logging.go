@@ -31,16 +31,13 @@ func (r *logginResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func InitLogger() {
+func LogginResponse(h http.Handler) http.Handler {
 	logger, err := zap.NewDevelopment()
 	defer logger.Sync()
 	if err != nil {
 		panic(err)
 	}
 	sugar = *logger.Sugar()
-}
-
-func LogginResponse(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		responseData := &responseData{
