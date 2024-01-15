@@ -37,18 +37,18 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	url_link, err := io.ReadAll(r)
+	urlLink, err := io.ReadAll(r)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	hash, err := handler.generator.MakeHash(string(url_link))
+	hash, err := handler.generator.MakeHash(string(urlLink))
 	if hash == "" {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
-	handler.storage.Save(string(url_link), hash)
+	handler.storage.Save(string(urlLink), hash)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -88,9 +88,12 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		Result string `json:"result"`
 	}
 	var output outputStruct
-	//var buf bytes.Buffer
 
 	r, err := decompresedReader(request)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	body, err := io.ReadAll(r)
 	if err != nil {
