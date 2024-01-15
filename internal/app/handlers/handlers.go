@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -33,19 +32,23 @@ func NewHandler(s Repository, g Generator, c HandlerConfig) *Handler {
 
 func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Request) {
 	r, err := decompresedReader(request)
-
-	url, err := io.ReadAll(r)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	hash, err := handler.generator.MakeHash(string(url))
+	url_link, err := io.ReadAll(r)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	hash, err := handler.generator.MakeHash(string(url_link))
 	if hash == "" {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
-	handler.storage.Save(string(url), hash)
+	handler.storage.Save(string(url_link), hash)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -85,15 +88,17 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		Result string `json:"result"`
 	}
 	var output outputStruct
-	var buf bytes.Buffer
+	//var buf bytes.Buffer
 
 	r, err := decompresedReader(request)
 
-	_, err = buf.ReadFrom(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
 	}
-	if err = json.Unmarshal(buf.Bytes(), &input); err != nil {
+
+	if err = json.Unmarshal(body, &input); err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -126,9 +131,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 }
 
 func decompresedReader(r *http.Request) (io.Reader, error) {
-	if r.Header.Get("Content-Encoding") == "gzip" &&
-		(r.Header.Get("Content-Type") == "application/json" ||
-			r.Header.Get("Content-Type") == "text/html") {
+	if r.Header.Get("Content-Encoding") == "gzip" {
 		return gzip.NewReader(r.Body)
 	}
 	return r.Body, nil
