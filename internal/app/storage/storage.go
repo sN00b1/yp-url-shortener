@@ -44,9 +44,9 @@ func NewStorage(config *StorageConfig) (*Storage, error) {
 	}, nil
 }
 
-func (s *Storage) DeInit() {
-	err1 := s.producer.Close()
-	err2 := s.consumer.Close()
+func (storage *Storage) DeInit() {
+	err1 := storage.producer.Close()
+	err2 := storage.consumer.Close()
 
 	var err error
 	if err1 != nil && err2 != nil {
@@ -71,7 +71,7 @@ func (storage *Storage) Save(url, hash string) error {
 	}
 
 	item := shortenURL{
-		Id:   uuid.NewString(),
+		ID:   uuid.NewString(),
 		URL:  url,
 		Hash: hash,
 	}
