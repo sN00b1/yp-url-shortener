@@ -6,7 +6,7 @@ import (
 )
 
 type shortenURL struct {
-	Id   string `json:"uuid"`
+	ID   string `json:"uuid"`
 	Hash string `json:"hash"`
 	URL  string `json:"url"`
 }
