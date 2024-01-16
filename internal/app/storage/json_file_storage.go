@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-type shortenUrl struct {
+type shortenURL struct {
 	Id   string `json:"uuid"`
 	Hash string `json:"hash"`
 	URL  string `json:"url"`
@@ -27,7 +27,7 @@ func NewProducer(filename string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) WriteItem(obj shortenUrl) error {
+func (p *Producer) WriteItem(obj shortenURL) error {
 	return p.encoder.Encode(obj)
 }
 
@@ -51,8 +51,8 @@ func NewConsumer(filename string) (*Consumer, error) {
 	}, nil
 }
 
-func (c *Consumer) ReadItem() (*shortenUrl, error) {
-	obj := shortenUrl{}
+func (c *Consumer) ReadItem() (*shortenURL, error) {
+	obj := shortenURL{}
 	if err := c.decoder.Decode(&obj); err != nil {
 		return nil, err
 	}
