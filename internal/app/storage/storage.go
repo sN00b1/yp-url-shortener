@@ -49,18 +49,10 @@ func (storage *Storage) DeInit() {
 	err2 := storage.consumer.Close()
 
 	var err error
-	if err1 != nil && err2 != nil {
-		err = errors.New(err1.Error() + " " + err2.Error())
-	}
-	if err1 != nil {
-		err = err1
-	}
-	if err2 != nil {
-		err = err2
-	}
+	err = errors.Join(err1, err2)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 }
 
@@ -77,7 +69,7 @@ func (storage *Storage) Save(url, hash string) error {
 	}
 
 	if err := storage.producer.WriteItem(item); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	storage.mutex.RLock()
