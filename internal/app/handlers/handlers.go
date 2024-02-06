@@ -137,7 +137,9 @@ func (handler *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 	err := handler.storage.Ping()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func decompresedReader(r *http.Request) (io.Reader, error) {
