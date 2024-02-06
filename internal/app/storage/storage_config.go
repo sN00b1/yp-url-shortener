@@ -12,7 +12,7 @@ type StorageConfig struct {
 func NewStorageConfig(pathFlag, dbFlag string) *StorageConfig {
 	var filePath, dbInfo string
 	pathOS := os.Getenv("FILE_STORAGE_PATH")
-	dbOS := os.Getenv("PSQL_SHORTENER_CONFIG")
+	dbOS := os.Getenv("DATABASE_DSN")
 	if pathFlag != "" {
 		filePath = pathFlag
 	}
