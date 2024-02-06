@@ -48,8 +48,7 @@ func (storage *Storage) DeInit() {
 	err1 := storage.producer.Close()
 	err2 := storage.consumer.Close()
 
-	var err error
-	err = errors.Join(err1, err2)
+	err := errors.Join(err1, err2)
 
 	if err != nil {
 		log.Print(err)
