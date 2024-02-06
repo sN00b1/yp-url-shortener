@@ -2,17 +2,56 @@ package storage
 
 import (
 	"errors"
+	"log"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type Storage struct {
 	ramStorage map[string]string
+	producer   Producer
+	consumer   Consumer
 	mutex      sync.RWMutex
+	cfg        StorageConfig
 }
 
-func NewStorage() *Storage {
+func NewStorage(config *StorageConfig) (*Storage, error) {
+	p, err := NewProducer(config.FilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := NewConsumer(config.FilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var tmp = make(map[string]string)
+	for {
+		readItem, err := c.ReadItem()
+		if err != nil {
+			break
+		}
+		tmp[readItem.Hash] = readItem.URL
+	}
+
 	return &Storage{
-		ramStorage: make(map[string]string),
+		ramStorage: tmp,
+		producer:   *p,
+		consumer:   *c,
+		cfg:        *config,
+	}, nil
+}
+
+func (storage *Storage) DeInit() {
+	err1 := storage.producer.Close()
+	err2 := storage.consumer.Close()
+
+	err := errors.Join(err1, err2)
+
+	if err != nil {
+		log.Print(err)
 	}
 }
 
@@ -20,6 +59,16 @@ func (storage *Storage) Save(url, hash string) error {
 	_, ok := storage.ramStorage[hash]
 	if ok {
 		return errors.New("hash already used")
+	}
+
+	item := shortenURL{
+		ID:   uuid.NewString(),
+		URL:  url,
+		Hash: hash,
+	}
+
+	if err := storage.producer.WriteItem(item); err != nil {
+		log.Print(err)
 	}
 
 	storage.mutex.RLock()
