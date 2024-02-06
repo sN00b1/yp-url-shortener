@@ -16,6 +16,11 @@ func (m *MockStorage) Get(id string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockStorage) Ping() error {
+	args := m.Called()
+	return args.Error(1)
+}
+
 type MockGenerator struct {
 	mock.Mock
 }

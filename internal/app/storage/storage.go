@@ -14,6 +14,7 @@ type Storage struct {
 	consumer   Consumer
 	mutex      sync.RWMutex
 	cfg        StorageConfig
+	DBStore    DBStorage
 }
 
 func NewStorage(config *StorageConfig) (*Storage, error) {
@@ -36,11 +37,17 @@ func NewStorage(config *StorageConfig) (*Storage, error) {
 		tmp[readItem.Hash] = readItem.URL
 	}
 
+	db, err := NewDBStorage(config.DBInfo)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
 	return &Storage{
 		ramStorage: tmp,
 		producer:   *p,
 		consumer:   *c,
 		cfg:        *config,
+		DBStore:    *db,
 	}, nil
 }
 
@@ -53,6 +60,8 @@ func (storage *Storage) DeInit() {
 	if err != nil {
 		log.Print(err)
 	}
+
+	storage.DBStore.DB.Close()
 }
 
 func (storage *Storage) Save(url, hash string) error {
@@ -87,4 +96,9 @@ func (storage *Storage) Get(hash string) (string, error) {
 		return "", errors.New("cant find url by hash")
 	}
 	return url, nil
+}
+
+func (storage *Storage) Ping() error {
+	err := storage.DBStore.DB.Ping()
+	return err
 }
