@@ -20,7 +20,7 @@ func main() {
 
 	s, err := storage.NewStorage(str)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer s.DeInit()
 
