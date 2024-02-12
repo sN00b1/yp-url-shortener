@@ -70,7 +70,7 @@ type FileStorage struct {
 	isActive bool
 }
 
-func NewFileSorage(filePath string) (*FileStorage, error) {
+func NewFileStorage(filePath string) (*FileStorage, error) {
 	p, err := NewProducer(filePath)
 	if err != nil {
 		return &FileStorage{
@@ -107,9 +107,9 @@ func (fileStorage *FileStorage) ReadAllData(tmp map[string]string) error {
 	return nil
 }
 
-func (fileSorage *FileStorage) Close() error {
-	err1 := fileSorage.consumer.Close()
-	err2 := fileSorage.producer.Close()
+func (fileStorage *FileStorage) Close() error {
+	err1 := fileStorage.consumer.Close()
+	err2 := fileStorage.producer.Close()
 
 	err := errors.Join(err1, err2)
 

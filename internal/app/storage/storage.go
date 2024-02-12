@@ -19,7 +19,7 @@ type Storage struct {
 func NewStorage(config *StorageConfig) (*Storage, error) {
 	var tmp = make(map[string]string)
 
-	fs, err := NewFileSorage(config.FilePath)
+	fs, err := NewFileStorage(config.FilePath)
 	if err != nil {
 		log.Println(err.Error())
 	}
