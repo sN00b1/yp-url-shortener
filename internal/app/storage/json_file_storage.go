@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 )
 
@@ -61,4 +62,65 @@ func (c *Consumer) ReadItem() (*shortenURL, error) {
 
 func (c *Consumer) Close() error {
 	return c.file.Close()
+}
+
+type FileStorage struct {
+	producer *Producer
+	consumer *Consumer
+	isActive bool
+}
+
+func NewFileSorage(filePath string) (*FileStorage, error) {
+	p, err := NewProducer(filePath)
+	if err != nil {
+		return &FileStorage{
+			producer: nil,
+			consumer: nil,
+			isActive: false,
+		}, err
+	}
+
+	c, err := NewConsumer(filePath)
+	if err != nil {
+		return &FileStorage{
+			producer: nil,
+			consumer: nil,
+			isActive: false,
+		}, err
+	}
+
+	return &FileStorage{
+		producer: p,
+		consumer: c,
+		isActive: true,
+	}, err
+}
+
+func (fileStorage *FileStorage) ReadAllData(tmp map[string]string) error {
+	for {
+		readItem, err := fileStorage.consumer.ReadItem()
+		if err != nil {
+			break
+		}
+		tmp[readItem.Hash] = readItem.URL
+	}
+	return nil
+}
+
+func (fileSorage *FileStorage) Close() error {
+	err1 := fileSorage.consumer.Close()
+	err2 := fileSorage.producer.Close()
+
+	err := errors.Join(err1, err2)
+
+	return err
+}
+
+func (fileStorage *FileStorage) SaveURL(obj shortenURL) error {
+	err := fileStorage.producer.WriteItem(obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
