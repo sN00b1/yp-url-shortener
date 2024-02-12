@@ -23,7 +23,7 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 	}
 
 	createQuery := `
-		CREATE TABLE IF NOT EXIST urls (
+		CREATE TABLE IF NOT EXISTS urls (
 			id SERIAL PRIMARY KEY,
 			shortURL VARCHAR(255),
 			originalURL VARCHAR(255),
