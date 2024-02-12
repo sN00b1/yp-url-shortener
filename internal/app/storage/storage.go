@@ -79,10 +79,10 @@ func (storage *Storage) Save(url, hash string) error {
 
 	if storage.dbStore.IsActive {
 		err := storage.dbStore.SaveURL(item)
-		if err == nil {
-			return nil
-		} else {
+		if err != nil {
 			log.Println(err.Error())
+		} else {
+			return nil
 		}
 	}
 
