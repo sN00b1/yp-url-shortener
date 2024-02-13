@@ -13,6 +13,7 @@ type DBStorage struct {
 }
 
 func NewDBStorage(cfg string) (*DBStorage, error) {
+	log.Println(cfg)
 	objDB, err := sql.Open("postgres", cfg)
 	if err != nil {
 		log.Println(err.Error())
@@ -24,7 +25,7 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 
 	createQuery := `
 		CREATE TABLE IF NOT EXISTS urls (
-			id SERIAL PRIMARY KEY,
+			id VARCHAR(255) PRIMARY KEY,
 			shortURL VARCHAR(255),
 			originalURL VARCHAR(255),
 			UNIQUE(originalURL)
@@ -80,6 +81,7 @@ func (dbStorage *DBStorage) SaveURL(obj shortenURL) error {
 
 	_, err := dbStorage.DB.Exec(insertSql, obj.ID, obj.Hash, obj.URL)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
