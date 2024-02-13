@@ -18,10 +18,12 @@ func New() *Config {
 	addrFlag := flag.String("a", "", "host addr")
 	urlFlag := flag.String("b", "", "handler base url")
 	pathFlag := flag.String("f", "", "file path to save storage info")
+	dbFlag := flag.String("d", "", `postgres initial line, need to be in format:
+	                                 host=localhost port=5432 user=postgres password=example dbname=godb sslmode=disable`)
 	flag.Parse()
 	return &Config{
 		ServerConfig:  server.NewServerConfig(*addrFlag),
 		HandlerConfig: handlers.NewHandlerConfig(*urlFlag),
-		StorageConfig: storage.NewStorageConfig(*pathFlag),
+		StorageConfig: storage.NewStorageConfig(*pathFlag, *dbFlag),
 	}
 }

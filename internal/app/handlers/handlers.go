@@ -133,6 +133,15 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	}
 }
 
+func (handler *Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	err := handler.storage.Ping()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func decompresedReader(r *http.Request) (io.Reader, error) {
 	if r.Header.Get("Content-Encoding") == "gzip" {
 		return gzip.NewReader(r.Body)
@@ -149,6 +158,7 @@ func NewRouter(handler *Handler) chi.Router {
 		router.Get("/{id}", handler.Expand)
 		router.Post("/", handler.Shorten)
 		router.Post("/api/shorten", handler.ShortenFromJSON)
+		router.Get("/ping", handler.Ping)
 	})
 	return router
 }
