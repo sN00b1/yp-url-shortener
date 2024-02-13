@@ -74,11 +74,11 @@ func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
 }
 
 func (dbStorage *DBStorage) SaveURL(obj shortenURL) error {
-	insertSql := `
+	insertSQL := `
 		INSERT INTO urls (id, shortURL, originalURL)
 		VALUES ($1, $2, $3)`
 
-	_, err := dbStorage.DB.Exec(insertSql, obj.ID, obj.Hash, obj.URL)
+	_, err := dbStorage.DB.Exec(insertSQL, obj.ID, obj.Hash, obj.URL)
 	if err != nil {
 		log.Println(err)
 		return err
