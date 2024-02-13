@@ -13,7 +13,6 @@ type DBStorage struct {
 }
 
 func NewDBStorage(cfg string) (*DBStorage, error) {
-	log.Println(cfg)
 	objDB, err := sql.Open("postgres", cfg)
 	if err != nil {
 		log.Println(err.Error())
