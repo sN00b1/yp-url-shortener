@@ -67,7 +67,7 @@ func (storage *Storage) Save(url, hash string) error {
 		return errors.New("hash already used")
 	}
 
-	item := shortenURL{
+	item := ShortenURL{
 		ID:   uuid.NewString(),
 		URL:  url,
 		Hash: hash,

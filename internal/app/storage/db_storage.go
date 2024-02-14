@@ -57,7 +57,7 @@ func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		var obj shortenURL
+		var obj ShortenURL
 		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL)
 		if err != nil {
 			log.Println(err.Error())
@@ -73,7 +73,7 @@ func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
 	return nil
 }
 
-func (dbStorage *DBStorage) SaveURL(obj shortenURL) error {
+func (dbStorage *DBStorage) SaveURL(obj ShortenURL) error {
 	insertSQL := `
 		INSERT INTO urls (id, shortURL, originalURL)
 		VALUES ($1, $2, $3)`
