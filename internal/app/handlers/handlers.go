@@ -64,7 +64,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	hash, err := handler.generator.MakeHash(string(urlLink))
-	if hash == "" {
+	if err != nil {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
@@ -121,7 +121,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	}
 
 	hash, err := handler.generator.MakeHash(string(input.OriginalURL))
-	if hash == "" {
+	if err != nil {
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
