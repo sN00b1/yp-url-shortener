@@ -32,7 +32,7 @@ type outputStruct struct {
 }
 
 type inputBatchStruct struct {
-	CorrelationId string `json:"correlation_id"`
+	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
@@ -190,7 +190,7 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 		}
 
 		resp = append(resp, outputBatchStruct{
-			CorrelationID: obj.CorrelationId,
+			CorrelationID: obj.CorrelationID,
 			ShortURL:      fmt.Sprintf("%s/%s", handler.cfg.HandlerURL, hash),
 		})
 
