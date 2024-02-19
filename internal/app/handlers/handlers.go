@@ -68,13 +68,14 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
-	handler.storage.Save(string(urlLink), hash)
+
+	headerStatus := http.StatusCreated
+	err = handler.storage.Save(string(urlLink), hash)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
+		headerStatus = http.StatusConflict
 	}
 
-	writer.WriteHeader(http.StatusCreated)
+	writer.WriteHeader(headerStatus)
 	result := fmt.Sprintf("%s/%s", handler.cfg.HandlerURL, hash)
 	_, err = writer.Write([]byte(result))
 	if err != nil {
@@ -124,10 +125,11 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		http.Error(writer, "cannot generate url", http.StatusInternalServerError)
 		return
 	}
-	handler.storage.Save(string(input.OriginalURL), hash)
+
+	headrStatus := http.StatusCreated
+	err = handler.storage.Save(string(input.OriginalURL), hash)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
+		headrStatus = http.StatusConflict
 	}
 
 	output.Result = fmt.Sprintf("%s/%s", handler.cfg.HandlerURL, hash)
@@ -139,7 +141,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusCreated)
+	writer.WriteHeader(headrStatus)
 	_, err = writer.Write([]byte(resp))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
