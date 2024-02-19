@@ -137,11 +137,13 @@ func (storage *Storage) SaveBatchURLs(toSave []ShortenURL) error {
 			tx.Rollback()
 			return err
 		}
-
-		err = tx.Commit()
-		if err != nil {
-			return err
-		}
+		storage.ramStorage[saveURL.Hash] = saveURL.URL
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
