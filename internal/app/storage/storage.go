@@ -9,50 +9,56 @@ import (
 )
 
 type Storage struct {
-	ramStorage map[string]string
-	producer   Producer
-	consumer   Consumer
-	mutex      sync.RWMutex
-	cfg        StorageConfig
+	ramStorage  map[string]string
+	fileStorage *FileStorage
+	mutex       sync.RWMutex
+	cfg         StorageConfig
+	dbStore     *DBStorage
 }
 
 func NewStorage(config *StorageConfig) (*Storage, error) {
-	p, err := NewProducer(config.FilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := NewConsumer(config.FilePath)
-	if err != nil {
-		return nil, err
-	}
-
 	var tmp = make(map[string]string)
-	for {
-		readItem, err := c.ReadItem()
+
+	fs, err := NewFileStorage(config.FilePath)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	if fs.isActive {
+		err = fs.ReadAllData(tmp)
 		if err != nil {
-			break
+			log.Println(err.Error())
 		}
-		tmp[readItem.Hash] = readItem.URL
+	}
+
+	db, err := NewDBStorage(config.DBInfo)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	if db.IsActive {
+		err = db.ReadAllData(tmp)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	return &Storage{
-		ramStorage: tmp,
-		producer:   *p,
-		consumer:   *c,
-		cfg:        *config,
+		ramStorage:  tmp,
+		fileStorage: fs,
+		cfg:         *config,
+		dbStore:     db,
 	}, nil
 }
 
 func (storage *Storage) DeInit() {
-	err1 := storage.producer.Close()
-	err2 := storage.consumer.Close()
-
-	err := errors.Join(err1, err2)
+	err := storage.fileStorage.Close()
 
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
+
+	storage.dbStore.DB.Close()
 }
 
 func (storage *Storage) Save(url, hash string) error {
@@ -61,19 +67,31 @@ func (storage *Storage) Save(url, hash string) error {
 		return errors.New("hash already used")
 	}
 
-	item := shortenURL{
+	item := ShortenURL{
 		ID:   uuid.NewString(),
 		URL:  url,
 		Hash: hash,
 	}
 
-	if err := storage.producer.WriteItem(item); err != nil {
-		log.Print(err)
-	}
-
 	storage.mutex.RLock()
 	storage.ramStorage[hash] = url
 	storage.mutex.RUnlock()
+
+	if storage.dbStore.IsActive {
+		err := storage.dbStore.SaveURL(item)
+		if err != nil {
+			log.Println(err.Error())
+		} else {
+			return nil
+		}
+	}
+
+	if storage.fileStorage.isActive {
+		err := storage.fileStorage.SaveURL(item)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 
 	return nil
 }
@@ -87,4 +105,48 @@ func (storage *Storage) Get(hash string) (string, error) {
 		return "", errors.New("cant find url by hash")
 	}
 	return url, nil
+}
+
+func (storage *Storage) Ping() error {
+	err := storage.dbStore.DB.Ping()
+	return err
+}
+
+func (storage *Storage) SaveBatchURLs(toSave []ShortenURL) error {
+	tx, err := storage.dbStore.DB.Begin()
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL) VALUES($1, $2, $3)")
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	defer stmt.Close()
+
+	for _, saveURL := range toSave {
+		_, err = stmt.Exec(
+			uuid.NewString(),
+			saveURL.Hash,
+			saveURL.URL)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		storage.mutex.RLock()
+		storage.ramStorage[saveURL.Hash] = saveURL.URL
+		storage.mutex.RUnlock()
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
