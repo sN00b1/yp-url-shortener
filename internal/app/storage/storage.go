@@ -137,7 +137,10 @@ func (storage *Storage) SaveBatchURLs(toSave []ShortenURL) error {
 			tx.Rollback()
 			return err
 		}
+
+		storage.mutex.Lock()
 		storage.ramStorage[saveURL.Hash] = saveURL.URL
+		storage.mutex.RUnlock()
 	}
 
 	err = tx.Commit()

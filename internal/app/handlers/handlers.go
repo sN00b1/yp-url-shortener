@@ -170,11 +170,6 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	var req []inputBatchStruct
 	var resp []outputBatchStruct
 	var toSave []storage.ShortenURL
