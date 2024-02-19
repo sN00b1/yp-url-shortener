@@ -111,3 +111,37 @@ func (storage *Storage) Ping() error {
 	err := storage.dbStore.DB.Ping()
 	return err
 }
+
+func (storage *Storage) SaveBatchURLs(toSave []ShortenURL) error {
+	tx, err := storage.dbStore.DB.Begin()
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL) VALUES($1, $2, $3)")
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	defer stmt.Close()
+
+	for _, saveURL := range toSave {
+		_, err = stmt.Exec(
+			uuid.NewString(),
+			saveURL.Hash,
+			saveURL.URL)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

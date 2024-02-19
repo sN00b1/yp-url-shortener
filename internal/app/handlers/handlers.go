@@ -206,6 +206,13 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 		})
 	}
 
+	err = handler.storage.SaveBatchURLs(toSave)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusCreated)
 	enc := json.NewEncoder(writer)
