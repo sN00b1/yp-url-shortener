@@ -90,7 +90,7 @@ func (dbStorage *DBStorage) Save(url, hash string) error {
 
 func (dbStorage *DBStorage) Get(hash string) (string, error) {
 	selectSQL := `
-		SELECT * FROM urls WHERE shortURL = ?`
+		SELECT id, shortURL, originalURL FROM urls WHERE shortURL = $1`
 
 	row, err := dbStorage.DB.Query(selectSQL, hash)
 	if err != nil {
