@@ -7,6 +7,7 @@ type Repository interface {
 	Get(hash string) (string, error)
 	Ping() error
 	SaveBatchURLs(toSave []storage.ShortenURL) error
+	DeInit()
 }
 
 type Generator interface {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -73,16 +74,82 @@ func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
 	return nil
 }
 
-func (dbStorage *DBStorage) SaveURL(obj ShortenURL) error {
+func (dbStorage *DBStorage) Save(url, hash string) error {
 	insertSQL := `
 		INSERT INTO urls (id, shortURL, originalURL)
 		VALUES ($1, $2, $3)`
 
-	_, err := dbStorage.DB.Exec(insertSQL, obj.ID, obj.Hash, obj.URL)
+	_, err := dbStorage.DB.Exec(insertSQL, uuid.NewString(), hash, url)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	return nil
+}
+
+func (dbStorage *DBStorage) Get(hash string) (string, error) {
+	selectSQL := `
+		SELECT * FROM urls WHERE shortURL = ?`
+
+	row, err := dbStorage.DB.Query(selectSQL, hash)
+	if err != nil {
+		return "", err
+	}
+
+	var obj ShortenURL
+	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL)
+	if err != nil {
+		return "", err
+	}
+
+	return obj.URL, nil
+}
+
+func (dbStorage *DBStorage) Ping() error {
+	err := dbStorage.DB.Ping()
+	return err
+}
+
+func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL) error {
+	tx, err := dbStorage.DB.Begin()
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL) VALUES($1, $2, $3)")
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	defer stmt.Close()
+
+	for _, saveURL := range toSave {
+		_, err = stmt.Exec(
+			uuid.NewString(),
+			saveURL.Hash,
+			saveURL.URL)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dbStorage *DBStorage) DeInit() {
+	err := dbStorage.DB.Close()
+
+	if err != nil {
+		log.Println(err.Error())
+	}
 }

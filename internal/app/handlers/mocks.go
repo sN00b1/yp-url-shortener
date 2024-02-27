@@ -29,6 +29,10 @@ func (m *MockStorage) SaveBatchURLs(toSace []storage.ShortenURL) error {
 	return args.Error(1)
 }
 
+func (m *MockStorage) DeInit() {
+	return
+}
+
 type MockGenerator struct {
 	mock.Mock
 }
