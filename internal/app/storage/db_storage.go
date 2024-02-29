@@ -97,6 +97,10 @@ func (dbStorage *DBStorage) Get(hash string) (string, error) {
 		return "", err
 	}
 
+	if row.Err() != nil {
+		return "", row.Err()
+	}
+
 	var obj ShortenURL
 	row.Next()
 	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL)
