@@ -23,7 +23,7 @@ func main() {
 	if str.DBInfo != "" {
 		s, err = storage.NewDBStorage(str.DBInfo)
 	} else {
-		s, err = storage.NewRamFileStorage(str)
+		s, err = storage.NewRAMFileStorage(str)
 	}
 
 	if err != nil {
