@@ -18,9 +18,16 @@ func main() {
 
 	g := tools.HashGenerator{}
 
-	s, err := storage.NewStorage(str)
+	var err error
+	var s handlers.Repository
+	if str.DBInfo != "" {
+		s, err = storage.NewDBStorage(str.DBInfo)
+	} else {
+		s, err = storage.NewRAMFileStorage(str)
+	}
+
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer s.DeInit()
 

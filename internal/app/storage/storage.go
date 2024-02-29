@@ -8,77 +8,82 @@ import (
 	"github.com/google/uuid"
 )
 
-type Storage struct {
-	ramStorage map[string]string
-	producer   Producer
-	consumer   Consumer
-	mutex      sync.RWMutex
-	cfg        StorageConfig
+type RAMFileStorage struct {
+	ramStorage  map[string]string
+	fileStorage *FileStorage
+	mutex       sync.RWMutex
+	cfg         StorageConfig
 }
 
-func NewStorage(config *StorageConfig) (*Storage, error) {
-	p, err := NewProducer(config.FilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := NewConsumer(config.FilePath)
-	if err != nil {
-		return nil, err
-	}
-
+func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	var tmp = make(map[string]string)
-	for {
-		readItem, err := c.ReadItem()
-		if err != nil {
-			break
-		}
-		tmp[readItem.Hash] = readItem.URL
+
+	fs, err := NewFileStorage(config.FilePath)
+	if err != nil {
+		log.Println(err.Error())
 	}
 
-	return &Storage{
-		ramStorage: tmp,
-		producer:   *p,
-		consumer:   *c,
-		cfg:        *config,
+	if fs.isActive {
+		err = fs.ReadAllData(tmp)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}
+
+	db, err := NewDBStorage(config.DBInfo)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	if db.IsActive {
+		err = db.ReadAllData(tmp)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}
+
+	return &RAMFileStorage{
+		ramStorage:  tmp,
+		fileStorage: fs,
+		cfg:         *config,
 	}, nil
 }
 
-func (storage *Storage) DeInit() {
-	err1 := storage.producer.Close()
-	err2 := storage.consumer.Close()
-
-	err := errors.Join(err1, err2)
+func (storage *RAMFileStorage) DeInit() {
+	err := storage.fileStorage.Close()
 
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 }
 
-func (storage *Storage) Save(url, hash string) error {
+func (storage *RAMFileStorage) Save(url, hash string) error {
 	_, ok := storage.ramStorage[hash]
 	if ok {
 		return errors.New("hash already used")
 	}
 
-	item := shortenURL{
+	item := ShortenURL{
 		ID:   uuid.NewString(),
 		URL:  url,
 		Hash: hash,
-	}
-
-	if err := storage.producer.WriteItem(item); err != nil {
-		log.Print(err)
 	}
 
 	storage.mutex.RLock()
 	storage.ramStorage[hash] = url
 	storage.mutex.RUnlock()
 
+	if storage.fileStorage.isActive {
+		err := storage.fileStorage.SaveURL(item)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	return nil
 }
 
-func (storage *Storage) Get(hash string) (string, error) {
+func (storage *RAMFileStorage) Get(hash string) (string, error) {
 	storage.mutex.RLock()
 	url, ok := storage.ramStorage[hash]
 	storage.mutex.RUnlock()
@@ -87,4 +92,19 @@ func (storage *Storage) Get(hash string) (string, error) {
 		return "", errors.New("cant find url by hash")
 	}
 	return url, nil
+}
+
+func (storage *RAMFileStorage) Ping() error {
+	return nil
+}
+
+func (storage *RAMFileStorage) SaveBatchURLs(toSave []ShortenURL) error {
+	for _, saveURL := range toSave {
+		err := storage.Save(saveURL.URL, saveURL.Hash)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}
+
+	return nil
 }
