@@ -14,6 +14,8 @@ import (
 	"github.com/sN00b1/yp-url-shortener/internal/app/encoding"
 	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
+	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
@@ -54,6 +56,25 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	r, err := decompresedReader(request)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cookie, err := request.Cookie(tools.JWTCookieKey)
+	// If any other error occurred, return a bad request error
+	if err != nil {
+		log.Println("cannot find cookie")
+		for _, cookie := range r.Cookies() {
+
+			logger.Log.Info("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	token, userID, err := getTokenAndUserID(cookie)
+	if err != nil || !token.Valid {
+		logger.Log.Info("cannot find cookie", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
