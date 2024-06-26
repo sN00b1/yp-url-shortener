@@ -60,21 +60,21 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	cookie, err := request.Cookie(tools.JWTCookieKey)
-	// If any other error occurred, return a bad request error
+
 	if err != nil {
 		log.Println("cannot find cookie")
-		for _, cookie := range r.Cookies() {
+		for _, cookie := range request.Cookies() {
 
-			logger.Log.Info("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+			log.Println("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	token, userID, err := getTokenAndUserID(cookie)
+	token, userID, err := tools.GetTokenAndUserID(cookie)
 	if err != nil || !token.Valid {
-		logger.Log.Info("cannot find cookie", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
+		log.Println("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	}
 
 	headerStatus := http.StatusCreated
-	err = handler.storage.Save(string(urlLink), hash)
+	err = handler.storage.Save(string(urlLink), hash, userID)
 	if err != nil {
 		headerStatus = http.StatusConflict
 	}
@@ -147,8 +147,27 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 		return
 	}
 
+	cookie, err := request.Cookie(tools.JWTCookieKey)
+
+	if err != nil {
+		log.Println("cannot find cookie")
+		for _, cookie := range request.Cookies() {
+
+			log.Println("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	token, userID, err := tools.GetTokenAndUserID(cookie)
+	if err != nil || !token.Valid {
+		log.Println("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	headrStatus := http.StatusCreated
-	err = handler.storage.Save(string(input.OriginalURL), hash)
+	err = handler.storage.Save(string(input.OriginalURL), hash, userID)
 	if err != nil {
 		headrStatus = http.StatusConflict
 	}

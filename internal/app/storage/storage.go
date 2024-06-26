@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	"log"
+	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
@@ -57,16 +58,17 @@ func (storage *RAMFileStorage) DeInit() {
 	}
 }
 
-func (storage *RAMFileStorage) Save(url, hash string) error {
+func (storage *RAMFileStorage) Save(url, hash string, userID int) error {
 	_, ok := storage.ramStorage[hash]
 	if ok {
 		return errors.New("hash already used")
 	}
 
 	item := ShortenURL{
-		ID:   uuid.NewString(),
-		URL:  url,
-		Hash: hash,
+		ID:     uuid.NewString(),
+		URL:    url,
+		Hash:   hash,
+		UserID: userID,
 	}
 
 	storage.mutex.RLock()
@@ -100,11 +102,15 @@ func (storage *RAMFileStorage) Ping() error {
 
 func (storage *RAMFileStorage) SaveBatchURLs(toSave []ShortenURL) error {
 	for _, saveURL := range toSave {
-		err := storage.Save(saveURL.URL, saveURL.Hash)
+		err := storage.Save(saveURL.URL, saveURL.Hash, saveURL.UserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
 	}
 
 	return nil
+}
+
+func (storage *RAMFileStorage) AuthMiddleware(next http.Handler) http.Handler {
+	return storage.fileStorage.AuthMiddleware(next)
 }

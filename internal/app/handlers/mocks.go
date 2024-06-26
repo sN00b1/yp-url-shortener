@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/mock"
 )
@@ -9,7 +11,7 @@ type MockStorage struct {
 	mock.Mock
 }
 
-func (m *MockStorage) Save(url string, id string) error {
+func (m *MockStorage) Save(url string, id string, userID int) error {
 	args := m.Called(url, id)
 	return args.Error(0)
 }
@@ -39,4 +41,9 @@ type MockGenerator struct {
 func (m *MockGenerator) MakeHash(s string) (string, error) {
 	args := m.Called(s)
 	return args.String(0), args.Error(1)
+}
+
+func (m *MockStorage) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	})
 }

@@ -1,15 +1,26 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"net/http"
 	"os"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
+	"go.uber.org/zap"
 )
 
 type ShortenURL struct {
-	ID   string `json:"uuid"`
-	Hash string `json:"hash"`
-	URL  string `json:"url"`
+	ID     string `json:"uuid"`
+	Hash   string `json:"hash"`
+	URL    string `json:"url"`
+	UserID int    `json:"userid"`
 }
 
 type Producer struct {
@@ -65,9 +76,12 @@ func (c *Consumer) Close() error {
 }
 
 type FileStorage struct {
-	producer *Producer
-	consumer *Consumer
-	isActive bool
+	producer    *Producer
+	consumer    *Consumer
+	isActive    bool
+	mutex       sync.Mutex
+	usedUserIDs map[string]int
+	curUserID   int
 }
 
 func NewFileStorage(filePath string) (*FileStorage, error) {
@@ -123,4 +137,125 @@ func (fileStorage *FileStorage) SaveURL(obj ShortenURL) error {
 	}
 
 	return nil
+}
+
+func (fileStorage *FileStorage) IncrementID(ctx context.Context) (int, error) {
+	fileStorage.curUserID++
+	return fileStorage.curUserID, nil
+}
+
+func (fileStorage *FileStorage) GetLastUserID(ctx context.Context) (int, error) {
+	if fileStorage != nil {
+		lastUserID, err := fileStorage.IncrementID(ctx)
+		if err != nil {
+			log.Println("Failed to read last user id from database", zap.Error(err))
+			return lastUserID, err
+		}
+
+		return lastUserID, nil
+	}
+
+	return fileStorage.curUserID, nil
+}
+
+func (fileStorage *FileStorage) SetUserIDCookie(writer http.ResponseWriter, request *http.Request, userID string) {
+	claims := tools.UserClaims{
+		UserID: userID,
+		Claims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			Issuer:    "myServer",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	signedToken, err := token.SignedString([]byte(tools.JWTSecretKey))
+	if err != nil {
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	newCookie := &http.Cookie{
+		Name:    tools.JWTCookieKey,
+		Value:   signedToken,
+		Expires: time.Now().Add(24 * time.Hour),
+	}
+
+	request.AddCookie(newCookie)
+
+	http.SetCookie(writer, newCookie)
+}
+
+func (fileStorage *FileStorage) SaveUserID(userID string) error {
+	fileStorage.mutex.Lock()
+
+	id, err := strconv.Atoi(userID)
+
+	if err != nil {
+		return err
+	}
+
+	fileStorage.usedUserIDs[userID] = id
+	fileStorage.mutex.Unlock()
+
+	return nil
+}
+
+func (fileStorage *FileStorage) IsItCorrectUserID(userID int) bool {
+	fileStorage.mutex.Lock()
+	ok := fileStorage.findUserID(userID)
+	fileStorage.mutex.Unlock()
+
+	return ok
+}
+
+func (fileStorage *FileStorage) findUserID(userID int) bool {
+	s := strconv.Itoa(userID)
+	_, ok := fileStorage.usedUserIDs[s]
+	return ok
+}
+
+func (fileStorage *FileStorage) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+		cookie, err := request.Cookie(tools.JWTCookieKey)
+
+		if err != nil && err != http.ErrNoCookie {
+			log.Println("error with cookie", zap.Error(err))
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		isBatchByUserID := request.Method == http.MethodGet && request.RequestURI == "/api/user/urls"
+
+		if err == http.ErrNoCookie {
+			if isBatchByUserID {
+				log.Println("No cookie and isBatchByUserID", zap.Error(err))
+				http.Error(writer, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			lastUserID, err := fileStorage.GetLastUserID(request.Context())
+			if err != nil {
+				log.Println("can't get userID for cookie", zap.Error(err))
+				http.Error(writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			lastUserIDStr := strconv.Itoa(lastUserID)
+			fileStorage.SetUserIDCookie(writer, request, lastUserIDStr)
+			fileStorage.SaveUserID(strconv.Itoa(lastUserID))
+			log.Println("Cookie is created! New user id", zap.Int("userID", lastUserID))
+
+			next.ServeHTTP(writer, request)
+		} else {
+			token, userID, err := tools.GetTokenAndUserID(cookie)
+
+			if err != nil || !token.Valid || !fileStorage.IsItCorrectUserID(userID) {
+				log.Println("invalid cookie", zap.Error(err), zap.Int("userID", userID))
+				http.Error(writer, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			log.Println("Cookie is finded", zap.Int("userID", userID))
+
+			next.ServeHTTP(writer, request)
+		}
+	})
 }

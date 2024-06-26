@@ -1,9 +1,11 @@
 package tools
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -17,7 +19,22 @@ const (
 // UserClaims is a custom JWT claims structure
 type UserClaims struct {
 	UserID string `json:"userID"`
-	jwt.RegisteredClaims
+	Claims jwt.RegisteredClaims
+}
+
+func (u UserClaims) Valid() error {
+	err := u.Claims.Valid()
+	if err != nil {
+		return err
+	}
+
+	result := strings.Contains(u.UserID, "-")
+
+	if result {
+		return errors.New("invalid UserID")
+	}
+
+	return nil
 }
 
 func keyFunc(token *jwt.Token) (interface{}, error) {
