@@ -117,8 +117,9 @@ func (fileStorage *FileStorage) ReadAllData(tmp map[string]string, lastUserID *i
 			break
 		}
 		tmp[readItem.Hash] = readItem.URL
-		lastUserID = &readItem.UserID
+		*lastUserID = readItem.UserID
 	}
+
 	return nil
 }
 
