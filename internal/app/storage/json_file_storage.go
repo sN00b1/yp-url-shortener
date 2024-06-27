@@ -110,13 +110,14 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, err
 }
 
-func (fileStorage *FileStorage) ReadAllData(tmp map[string]string) error {
+func (fileStorage *FileStorage) ReadAllData(tmp map[string]string, lastUserID *int) error {
 	for {
 		readItem, err := fileStorage.consumer.ReadItem()
 		if err != nil {
 			break
 		}
 		tmp[readItem.Hash] = readItem.URL
+		lastUserID = &readItem.UserID
 	}
 	return nil
 }
@@ -151,8 +152,6 @@ func (fileStorage *FileStorage) GetLastUserID(ctx context.Context) (int, error) 
 			log.Println("Failed to read last user id from database", zap.Error(err))
 			return lastUserID, err
 		}
-
-		return lastUserID, nil
 	}
 
 	return fileStorage.curUserID, nil

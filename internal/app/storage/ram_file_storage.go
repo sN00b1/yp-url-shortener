@@ -14,6 +14,7 @@ type RAMFileStorage struct {
 	fileStorage *FileStorage
 	mutex       sync.RWMutex
 	cfg         StorageConfig
+	lastUserID  int
 }
 
 func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
@@ -24,20 +25,10 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 		log.Println(err.Error())
 	}
 
+	lastUserID := 1
+
 	if fs.isActive {
-		err = fs.ReadAllData(tmp)
-		if err != nil {
-			log.Println(err.Error())
-		}
-	}
-
-	db, err := NewDBStorage(config.DBInfo)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	if db.IsActive {
-		err = db.ReadAllData(tmp)
+		err = fs.ReadAllData(tmp, &lastUserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -47,6 +38,7 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 		ramStorage:  tmp,
 		fileStorage: fs,
 		cfg:         *config,
+		lastUserID:  lastUserID,
 	}, nil
 }
 

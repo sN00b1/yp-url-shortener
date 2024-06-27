@@ -57,13 +57,15 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 		}, err
 	}
 
-	return &DBStorage{
+	db := &DBStorage{
 		DB:       objDB,
 		IsActive: true,
-	}, nil
+	}
+	db.ReadAllData()
+	return db, nil
 }
 
-func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
+func (dbStorage *DBStorage) ReadAllData() error {
 	selectAllQuery := `SELECT id, shortURL, originalURL, userID FROM urls`
 
 	rows, err := dbStorage.DB.Query(selectAllQuery)
@@ -73,13 +75,14 @@ func (dbStorage *DBStorage) ReadAllData(tmp map[string]string) error {
 
 	defer rows.Close()
 
+	dbStorage.lastUserID = 1
 	for rows.Next() {
 		var obj ShortenURL
-		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL)
+		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
-		tmp[obj.Hash] = obj.URL
+		dbStorage.lastUserID = obj.UserID
 	}
 
 	err = rows.Err()
