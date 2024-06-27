@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -122,7 +123,7 @@ func (dbStorage *DBStorage) Get(hash string) (string, error) {
 
 	var obj ShortenURL
 	row.Next()
-	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL)
+	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
 	if err != nil {
 		return "", err
 	}
@@ -312,4 +313,49 @@ func (dbStorage *DBStorage) AuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(writer, request)
 		}
 	})
+}
+
+func (dbStorage *DBStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]ShortenURL, error) {
+	if dbStorage.DB != nil {
+		return []ShortenURL{}, errors.New("data base does not connected")
+	}
+
+	urls, err := dbStorage.SelectSavedURLsForUserID(ctx, userID)
+	if err != nil {
+		log.Println("Failed to read from database", zap.Error(err))
+		return []ShortenURL{}, err
+	}
+
+	return urls, err
+}
+
+func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID int) ([]ShortenURL, error) {
+	var savedURLs []ShortenURL
+	var emptyURLs []ShortenURL
+
+	sqlStatement := `SELECT id, shortURL, originalURL, userID FROM urls where userID = $1`
+	rows, err := dbStorage.DB.QueryContext(ctx, sqlStatement, userID)
+	if err != nil {
+		log.Println("Failed to read from database", zap.Error(err))
+		return emptyURLs, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var obj ShortenURL
+		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
+		if err != nil {
+			log.Println("Failed to read from database", zap.Error(err))
+			return emptyURLs, err
+		}
+		savedURLs = append(savedURLs, obj)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println("Failed to read from database", zap.Error(err))
+		return emptyURLs, err
+	}
+
+	return savedURLs, err
 }
