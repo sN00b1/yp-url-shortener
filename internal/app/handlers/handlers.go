@@ -273,7 +273,7 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Use(middleware.Recoverer)
 	router.Use(loggin.LogginResponse)
 	router.Use(encoding.CompressHandle)
-	router.Use(handler.storage.AuthMiddleware)
+	//router.Use(handler.storage.AuthMiddleware)
 	router.Route("/", func(router chi.Router) {
 		router.Get("/{id}", handler.Expand)
 		router.Post("/", handler.Shorten)
