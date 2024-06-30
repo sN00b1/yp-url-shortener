@@ -102,6 +102,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
+	writer.WriteHeader(http.StatusCreated)
 }
 
 func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
