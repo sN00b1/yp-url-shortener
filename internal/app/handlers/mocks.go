@@ -45,5 +45,6 @@ func (m *MockGenerator) MakeHash(s string) (string, error) {
 
 func (m *MockStorage) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		next.ServeHTTP(writer, request)
 	})
 }
