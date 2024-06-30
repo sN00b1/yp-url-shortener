@@ -18,11 +18,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	jwtSecretKey = "{C9EC5030-259A-4CFD-A3A1-AD82EDA5B9A0}"
-	jwtCookieKey = "3C469E9D6C5875D37A43F353D4F88E61FCF812C66EEE3457465A40B0DA4153E0"
-)
-
 type Handler struct {
 	storage   Repository
 	generator Generator
@@ -273,7 +268,7 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Use(middleware.Recoverer)
 	router.Use(loggin.LogginResponse)
 	router.Use(encoding.CompressHandle)
-	//router.Use(handler.storage.AuthMiddleware)
+	router.Use(handler.storage.AuthMiddleware)
 	router.Route("/", func(router chi.Router) {
 		router.Get("/{id}", handler.Expand)
 		router.Post("/", handler.Shorten)
