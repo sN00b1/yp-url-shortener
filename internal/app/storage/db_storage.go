@@ -132,8 +132,11 @@ func (dbStorage *DBStorage) Get(hash string) (string, error) {
 }
 
 func (dbStorage *DBStorage) Ping() error {
-	err := dbStorage.DB.Ping()
-	return err
+	if dbStorage.DB != nil {
+		err := dbStorage.DB.Ping()
+		return err
+	}
+	return errors.New("db is not init")
 }
 
 func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL) error {
