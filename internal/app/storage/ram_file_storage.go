@@ -32,17 +32,13 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 		log.Println(err.Error())
 	}
 
-	lastUserID := 1
+	var lastUserID int
 
 	if fs.isActive {
 		err = fs.ReadAllData(tmp, tmpUsers, &lastUserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
-	}
-
-	if lastUserID == 0 {
-		lastUserID = 1
 	}
 
 	return &RAMFileStorage{
