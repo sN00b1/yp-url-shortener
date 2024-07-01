@@ -19,6 +19,9 @@ func NewStorageConfig(pathFlag, dbFlag string) *StorageConfig {
 	if pathOS != "" {
 		filePath = pathOS
 	}
+	if filePath == "" {
+		filePath = "/tmp/short-url-db.json"
+	}
 
 	if dbFlag != "" {
 		dbInfo = dbFlag

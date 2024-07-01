@@ -21,12 +21,12 @@ type RAMFileStorage struct {
 	mutex       sync.RWMutex
 	cfg         StorageConfig
 	lastUserID  int
-	usedUserIDs map[string]int
+	usedUserIDs []int
 }
 
 func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	var tmp = make(map[string]string)
-	var tmpUsers = make(map[string]int)
+	var tmpUsers []int
 	fs, err := NewFileStorage(config.FilePath)
 	if err != nil {
 		log.Println(err.Error())
@@ -35,7 +35,7 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	var lastUserID int
 
 	if fs.isActive {
-		err = fs.ReadAllData(tmp, tmpUsers, &lastUserID)
+		err = fs.ReadAllData(tmp, &tmpUsers, &lastUserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -158,19 +158,10 @@ func (storage *RAMFileStorage) SetUserIDCookie(writer http.ResponseWriter, reque
 	http.SetCookie(writer, newCookie)
 }
 
-func (storage *RAMFileStorage) SaveUserID(userID string) error {
+func (storage *RAMFileStorage) SaveUserID(userID int) {
 	storage.mutex.Lock()
-
-	id, err := strconv.Atoi(userID)
-
-	if err != nil {
-		return err
-	}
-
-	storage.usedUserIDs[userID] = id
+	storage.usedUserIDs = append(storage.usedUserIDs, userID)
 	storage.mutex.Unlock()
-
-	return nil
 }
 
 func (storage *RAMFileStorage) IsItCorrectUserID(userID int) bool {
@@ -182,8 +173,13 @@ func (storage *RAMFileStorage) IsItCorrectUserID(userID int) bool {
 }
 
 func (storage *RAMFileStorage) findUserID(userID int) bool {
-	s := strconv.Itoa(userID)
-	_, ok := storage.usedUserIDs[s]
+	ok := false
+	for _, v := range storage.usedUserIDs {
+		if v == userID {
+			ok = true
+			break
+		}
+	}
 	return ok
 }
 
@@ -214,7 +210,7 @@ func (storage *RAMFileStorage) AuthMiddleware(next http.Handler) http.Handler {
 			}
 			lastUserIDStr := strconv.Itoa(lastUserID)
 			storage.SetUserIDCookie(writer, request, lastUserIDStr)
-			storage.SaveUserID(strconv.Itoa(lastUserID))
+			storage.SaveUserID(lastUserID)
 			log.Println("Cookie is created! New user id", zap.Int("userID", lastUserID))
 
 			next.ServeHTTP(writer, request)

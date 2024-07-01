@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"strconv"
 	"sync"
 )
 
@@ -102,7 +101,7 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, err
 }
 
-func (fileStorage *FileStorage) ReadAllData(tmp map[string]string, tmpUserIDs map[string]int, lastUserID *int) error {
+func (fileStorage *FileStorage) ReadAllData(tmp map[string]string, tmpUserIDs *[]int, lastUserID *int) error {
 	for {
 		readItem, err := fileStorage.consumer.ReadItem()
 		if err != nil {
@@ -110,8 +109,7 @@ func (fileStorage *FileStorage) ReadAllData(tmp map[string]string, tmpUserIDs ma
 		}
 		tmp[readItem.Hash] = readItem.URL
 
-		uID := strconv.Itoa(readItem.UserID)
-		tmpUserIDs[uID] = readItem.UserID
+		*tmpUserIDs = append(*tmpUserIDs, readItem.UserID)
 		if *lastUserID < readItem.UserID {
 			*lastUserID = readItem.UserID
 		}
