@@ -22,7 +22,7 @@ type DBStorage struct {
 	IsActive    bool
 	lastUserID  int
 	mutex       sync.RWMutex
-	usedUserIDs map[string]int
+	usedUserIDs []int
 }
 
 func NewDBStorage(cfg string) (*DBStorage, error) {
@@ -243,19 +243,10 @@ func (dbStorage *DBStorage) SetUserIDCookie(writer http.ResponseWriter, request 
 	http.SetCookie(writer, newCookie)
 }
 
-func (dbStorage *DBStorage) SaveUserID(userID string) error {
+func (dbStorage *DBStorage) SaveUserID(userID int) {
 	dbStorage.mutex.Lock()
-
-	id, err := strconv.Atoi(userID)
-
-	if err != nil {
-		return err
-	}
-
-	dbStorage.usedUserIDs[userID] = id
+	dbStorage.usedUserIDs = append(dbStorage.usedUserIDs, userID)
 	dbStorage.mutex.Unlock()
-
-	return nil
 }
 
 func (dbStorage *DBStorage) IsItCorrectUserID(userID int) bool {
@@ -267,8 +258,13 @@ func (dbStorage *DBStorage) IsItCorrectUserID(userID int) bool {
 }
 
 func (dbStorage *DBStorage) findUserID(userID int) bool {
-	s := strconv.Itoa(userID)
-	_, ok := dbStorage.usedUserIDs[s]
+	ok := false
+	for _, v := range dbStorage.usedUserIDs {
+		if v == userID {
+			ok = true
+			break
+		}
+	}
 	return ok
 }
 
@@ -299,7 +295,7 @@ func (dbStorage *DBStorage) AuthMiddleware(next http.Handler) http.Handler {
 			}
 			lastUserIDStr := strconv.Itoa(lastUserID)
 			dbStorage.SetUserIDCookie(writer, request, lastUserIDStr)
-			dbStorage.SaveUserID(strconv.Itoa(lastUserID))
+			dbStorage.SaveUserID(lastUserID)
 			log.Println("Cookie is created! New user id", zap.Int("userID", lastUserID))
 
 			next.ServeHTTP(writer, request)
