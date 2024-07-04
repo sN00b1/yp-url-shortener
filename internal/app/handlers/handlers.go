@@ -121,7 +121,7 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 	}
 
 	writer.Header().Set("Location", url)
-	writer.WriteHeader(http.StatusOK)
+	writer.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *http.Request) {
