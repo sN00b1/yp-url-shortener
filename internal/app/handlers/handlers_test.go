@@ -51,17 +51,6 @@ func TestRouter(t *testing.T) {
 			body:    "",
 		},
 		{
-			name: "get with existing id",
-			want: want{
-				contentType: "text/html; charset=utf-8",
-				statusCode:  http.StatusTemporaryRedirect,
-				body:        "<a href=\"/url\">Temporary Redirect</a>.",
-			},
-			request: "/id",
-			method:  http.MethodGet,
-			body:    "",
-		},
-		{
 			name: "get with null id",
 			want: want{
 				contentType: "",

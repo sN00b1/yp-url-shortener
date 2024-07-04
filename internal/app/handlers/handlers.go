@@ -120,6 +120,7 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 		http.Error(writer, "cant find url by hash", http.StatusNotFound)
 	}
 
+	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.Header().Set("Location", url)
 	writer.WriteHeader(http.StatusTemporaryRedirect)
 }
