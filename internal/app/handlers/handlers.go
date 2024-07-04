@@ -107,6 +107,8 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 
 func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
 	hash := strings.TrimPrefix(request.URL.Path, "/")
+	/*log.Println("Expand: full url", request.URL)
+	log.Println("Expand: find hash", hash)*/
 	url, err := handler.storage.Get(hash)
 
 	if err != nil {
@@ -118,7 +120,8 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 		http.Error(writer, "cant find url by hash", http.StatusNotFound)
 	}
 
-	http.Redirect(writer, request, url, http.StatusTemporaryRedirect)
+	writer.Header().Set("Location", url)
+	writer.WriteHeader(http.StatusOK)
 }
 
 func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *http.Request) {
@@ -226,6 +229,7 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 
 	for _, obj := range req {
 		hash, err := handler.generator.MakeHash(string(obj.OriginalURL))
+		log.Println("hash:", hash, "OrigignalURL:", obj.OriginalURL)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(writer, err.Error(), http.StatusInternalServerError)

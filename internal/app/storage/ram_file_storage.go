@@ -71,9 +71,19 @@ func (storage *RAMFileStorage) Save(url, hash string, userID int) error {
 		UserID: userID,
 	}
 
+	/*log.Println("before")
+	for key, value := range storage.ramStorage {
+		log.Println("Key:", key, "Value:", value)
+	}*/
+
 	storage.mutex.RLock()
 	storage.ramStorage[hash] = url
 	storage.mutex.RUnlock()
+
+	/*log.Println("after")
+	for key, value := range storage.ramStorage {
+		log.Println("Key:", key, "Value:", value)
+	}*/
 
 	if storage.fileStorage.isActive {
 		err := storage.fileStorage.SaveURL(item)
@@ -89,6 +99,11 @@ func (storage *RAMFileStorage) Get(hash string) (string, error) {
 	storage.mutex.RLock()
 	url, ok := storage.ramStorage[hash]
 	storage.mutex.RUnlock()
+
+	/*log.Println("Find hash:", hash)
+	for key, value := range storage.ramStorage {
+		log.Println("Key:", key, "Value:", value)
+	}*/
 
 	if !ok {
 		return "", errors.New("cant find url by hash")
