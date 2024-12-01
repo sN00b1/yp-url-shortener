@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -62,10 +61,10 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 	cookie, err := request.Cookie(tools.JWTCookieKey)
 
 	if err != nil {
-		log.Println("cannot find cookie")
+		loggin.Log.Debug("cannot find cookie")
 		for _, cookie := range request.Cookies() {
 
-			log.Println("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+			loggin.Log.Debug("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
 		}
 		writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -73,7 +72,7 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 
 	token, userID, err := tools.GetTokenAndUserID(cookie)
 	if err != nil || !token.Valid {
-		log.Println("cannot find cookie", zap.Error(err))
+		loggin.Log.Debug("cannot find cookie", zap.Error(err))
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -107,8 +106,8 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 
 func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
 	hash := strings.TrimPrefix(request.URL.Path, "/")
-	log.Println("Expand: full url", request.URL)
-	log.Println("Expand: find hash", hash)
+	loggin.Log.Debug("Expand:", zap.String("full url", request.URL.String()))
+	loggin.Log.Debug("Expand:", zap.String("find hash", hash))
 	url, err := handler.storage.Get(hash)
 
 	if err != nil {
@@ -155,10 +154,10 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 	cookie, err := request.Cookie(tools.JWTCookieKey)
 
 	if err != nil {
-		log.Println("cannot find cookie")
+		loggin.Log.Debug("cannot find cookie")
 		for _, cookie := range request.Cookies() {
 
-			log.Println("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+			loggin.Log.Debug("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
 		}
 		writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -166,7 +165,7 @@ func (handler *Handler) ShortenFromJSON(writer http.ResponseWriter, request *htt
 
 	token, userID, err := tools.GetTokenAndUserID(cookie)
 	if err != nil || !token.Valid {
-		log.Println("cannot find cookie", zap.Error(err))
+		loggin.Log.Debug("cannot find cookie", zap.Error(err))
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -223,16 +222,16 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 
 	dec := json.NewDecoder(r)
 	if err = dec.Decode(&req); err != nil {
-		log.Println(err.Error())
+		loggin.Log.Debug(err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	for _, obj := range req {
 		hash, err := handler.generator.MakeHash(string(obj.OriginalURL))
-		log.Println("hash:", hash, "OrigignalURL:", obj.OriginalURL)
+		loggin.Log.Debug("Post batch:", zap.String("hash:", hash), zap.String("OrigignalURL:", obj.OriginalURL))
 		if err != nil {
-			log.Println(err.Error())
+			loggin.Log.Debug(err.Error())
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -251,7 +250,7 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 
 	err = handler.storage.SaveBatchURLs(toSave)
 	if err != nil {
-		log.Println(err.Error())
+		loggin.Log.Debug(err.Error())
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}

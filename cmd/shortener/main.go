@@ -5,12 +5,14 @@ import (
 
 	"github.com/sN00b1/yp-url-shortener/internal/app/config"
 	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/server"
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 )
 
 func main() {
+	loggin.Initialize("debug")
 	cfg := config.New()
 	addr := cfg.ServerConfig
 	url := cfg.HandlerConfig
