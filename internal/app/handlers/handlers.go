@@ -106,9 +106,10 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 
 func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
 	hash := strings.TrimPrefix(request.URL.Path, "/")
-	loggin.Log.Debug("Expand:", zap.String("full url", request.URL.String()))
-	loggin.Log.Debug("Expand:", zap.String("find hash", hash))
 	url, err := handler.storage.Get(hash)
+
+	loggin.Log.Debug("Expand:", zap.String("full url", request.URL.String()))
+	loggin.Log.Debug("Expand:", zap.String("find url", url))
 
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
