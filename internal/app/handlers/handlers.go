@@ -274,13 +274,11 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Use(loggin.LogginResponse)
 	router.Use(encoding.CompressHandle)
 	router.Use(handler.storage.AuthMiddleware)
-	router.Route("/", func(router chi.Router) {
-		router.Get("/{id}", handler.Expand)
-		router.Post("/", handler.Shorten)
-		router.Post("/api/shorten", handler.ShortenFromJSON)
-		router.Get("/ping", handler.Ping)
-		router.Post("/api/shorten/batch", handler.PostBatchHandler)
-		router.Get("/api/user/urls", handler.GetByUserIDHandler)
-	})
+	router.Get("/{id}", handler.Expand)
+	router.Post("/", handler.Shorten)
+	router.Post("/api/shorten", handler.ShortenFromJSON)
+	router.Get("/ping", handler.Ping)
+	router.Post("/api/shorten/batch", handler.PostBatchHandler)
+	router.Get("/api/user/urls", handler.GetByUserIDHandler)
 	return router
 }
