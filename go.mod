@@ -1,6 +1,6 @@
 module github.com/sN00b1/yp-url-shortener
 
-go 1.18
+go 1.22
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
