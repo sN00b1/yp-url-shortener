@@ -2,10 +2,13 @@ package config
 
 import (
 	"flag"
+	"os"
 
 	"github.com/sN00b1/yp-url-shortener/internal/app/handlers"
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/server"
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -21,6 +24,14 @@ func New() *Config {
 	dbFlag := flag.String("d", "", `postgres initial line, need to be in format:
 	                                 host=localhost port=5432 user=postgres password=example dbname=godb sslmode=disable`)
 	flag.Parse()
+
+	var args string
+
+	for _, v := range os.Args {
+		args = args + string(" ") + v
+	}
+
+	loggin.Log.Debug("flags: ", zap.String(args))
 	return &Config{
 		ServerConfig:  server.NewServerConfig(*addrFlag),
 		HandlerConfig: handlers.NewHandlerConfig(*urlFlag),
