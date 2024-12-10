@@ -228,6 +228,25 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 
+	cookie, err := request.Cookie(tools.JWTCookieKey)
+
+	if err != nil {
+		loggin.Log.Debug("cannot find cookie")
+		for _, cookie := range request.Cookies() {
+
+			loggin.Log.Debug("cookie that we have", zap.String("name", cookie.Name), zap.String("Value", cookie.Value))
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	token, userID, err := tools.GetTokenAndUserID(cookie)
+	if err != nil || !token.Valid {
+		loggin.Log.Debug("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	for _, obj := range req {
 		hash, err := handler.generator.MakeHash(string(obj.OriginalURL))
 		loggin.Log.Debug("Post batch:", zap.String("hash:", hash), zap.String("OrigignalURL:", obj.OriginalURL))
@@ -249,7 +268,7 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 		})
 	}
 
-	err = handler.storage.SaveBatchURLs(toSave)
+	err = handler.storage.SaveBatchURLs(toSave, userID)
 	if err != nil {
 		loggin.Log.Debug(err.Error())
 		http.Error(writer, err.Error(), http.StatusInternalServerError)

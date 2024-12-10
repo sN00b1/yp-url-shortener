@@ -10,7 +10,7 @@ type Repository interface {
 	Save(url, hash string, userID int) error
 	Get(hash string) (string, error)
 	Ping() error
-	SaveBatchURLs(toSave []storage.ShortenURL) error
+	SaveBatchURLs(toSave []storage.ShortenURL, userID int) error
 	DeInit()
 	AuthMiddleware(next http.Handler) http.Handler
 }

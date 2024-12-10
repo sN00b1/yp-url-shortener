@@ -26,7 +26,7 @@ func (m *MockStorage) Ping() error {
 	return args.Error(1)
 }
 
-func (m *MockStorage) SaveBatchURLs(toSace []storage.ShortenURL) error {
+func (m *MockStorage) SaveBatchURLs(toSace []storage.ShortenURL, userID int) error {
 	args := m.Called()
 	return args.Error(1)
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 	"go.uber.org/zap"
 )
@@ -29,7 +30,7 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	var tmpUsers []int
 	fs, err := NewFileStorage(config.FilePath)
 	if err != nil {
-		log.Println(err.Error())
+		loggin.Log.Debug("FIle storage", zap.String("err:", err.Error()))
 	}
 
 	var lastUserID int
@@ -37,7 +38,7 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	if fs.isActive {
 		err = fs.ReadAllData(tmp, &tmpUsers, &lastUserID)
 		if err != nil {
-			log.Println(err.Error())
+			loggin.Log.Debug("Read fIle storage", zap.String("err:", err.Error()))
 		}
 	}
 
@@ -115,9 +116,9 @@ func (storage *RAMFileStorage) Ping() error {
 	return nil
 }
 
-func (storage *RAMFileStorage) SaveBatchURLs(toSave []ShortenURL) error {
+func (storage *RAMFileStorage) SaveBatchURLs(toSave []ShortenURL, userID int) error {
 	for _, saveURL := range toSave {
-		err := storage.Save(saveURL.URL, saveURL.Hash, saveURL.UserID)
+		err := storage.Save(saveURL.URL, saveURL.Hash, userID)
 		if err != nil {
 			log.Println(err.Error())
 		}

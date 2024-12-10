@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 	"go.uber.org/zap"
 )
@@ -51,7 +52,7 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 	_, err = objDB.Exec(createQuery)
 
 	if err != nil {
-		log.Println(err.Error())
+		loggin.Log.Debug("err:", zap.String("err:", err.Error()))
 		return &DBStorage{
 			DB:       nil,
 			IsActive: false,
@@ -110,7 +111,7 @@ func (dbStorage *DBStorage) Save(url, hash string, userID int) error {
 
 func (dbStorage *DBStorage) Get(hash string) (string, error) {
 	selectSQL := `
-		SELECT id, shortURL, originalURL FROM urls WHERE shortURL = $1`
+		SELECT id, shortURL, originalURL, userID FROM urls WHERE shortURL = $1`
 
 	row, err := dbStorage.DB.Query(selectSQL, hash)
 	if err != nil {
@@ -139,14 +140,14 @@ func (dbStorage *DBStorage) Ping() error {
 	return errors.New("db is not init")
 }
 
-func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL) error {
+func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL, userID int) error {
 	tx, err := dbStorage.DB.Begin()
 	if err != nil {
 		log.Println(err.Error())
 		return nil
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL) VALUES($1, $2, $3)")
+	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL, userID) VALUES($1, $2, $3, $4)")
 	if err != nil {
 		log.Println(err.Error())
 		return nil
@@ -158,7 +159,8 @@ func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL) error {
 		_, err = stmt.Exec(
 			uuid.NewString(),
 			saveURL.Hash,
-			saveURL.URL)
+			saveURL.URL,
+			userID)
 
 		if err != nil {
 			tx.Rollback()
