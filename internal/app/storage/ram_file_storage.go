@@ -17,16 +17,19 @@ import (
 )
 
 type RAMFileStorage struct {
-	ramStorage  map[string]string
-	fileStorage *FileStorage
-	mutex       sync.RWMutex
-	cfg         StorageConfig
-	lastUserID  int
-	usedUserIDs []int
+	ramStorage     map[string]string
+	userIDStrorage map[int][]string
+	fileStorage    *FileStorage
+	mutex          sync.RWMutex
+	cfg            StorageConfig
+	lastUserID     int
+	usedUserIDs    []int
 }
 
 func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
-	var tmp = make(map[string]string)
+	var ramS = make(map[string]string)
+	var userIDS = make(map[int][]string)
+
 	var tmpUsers []int
 	fs, err := NewFileStorage(config.FilePath)
 	if err != nil {
@@ -36,18 +39,19 @@ func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
 	var lastUserID int
 
 	if fs.isActive {
-		err = fs.ReadAllData(tmp, &tmpUsers, &lastUserID)
+		err = fs.ReadAllData(ramS, userIDS, &tmpUsers, &lastUserID)
 		if err != nil {
 			loggin.Log.Debug("Read fIle storage", zap.String("err:", err.Error()))
 		}
 	}
 
 	return &RAMFileStorage{
-		ramStorage:  tmp,
-		fileStorage: fs,
-		cfg:         *config,
-		lastUserID:  lastUserID,
-		usedUserIDs: tmpUsers,
+		ramStorage:     ramS,
+		userIDStrorage: userIDS,
+		fileStorage:    fs,
+		cfg:            *config,
+		lastUserID:     lastUserID,
+		usedUserIDs:    tmpUsers,
 	}, nil
 }
 
@@ -72,19 +76,10 @@ func (storage *RAMFileStorage) Save(url, hash string, userID int) error {
 		UserID: userID,
 	}
 
-	/*log.Println("before")
-	for key, value := range storage.ramStorage {
-		log.Println("Key:", key, "Value:", value)
-	}*/
-
 	storage.mutex.RLock()
 	storage.ramStorage[hash] = url
+	storage.userIDStrorage[userID] = append(storage.userIDStrorage[userID], hash)
 	storage.mutex.RUnlock()
-
-	/*log.Println("after")
-	for key, value := range storage.ramStorage {
-		log.Println("Key:", key, "Value:", value)
-	}*/
 
 	if storage.fileStorage.isActive {
 		err := storage.fileStorage.SaveURL(item)
@@ -100,11 +95,6 @@ func (storage *RAMFileStorage) Get(hash string) (string, error) {
 	storage.mutex.RLock()
 	url, ok := storage.ramStorage[hash]
 	storage.mutex.RUnlock()
-
-	/*log.Println("Find hash:", hash)
-	for key, value := range storage.ramStorage {
-		log.Println("Key:", key, "Value:", value)
-	}*/
 
 	if !ok {
 		return "", errors.New("cant find url by hash")
@@ -243,4 +233,15 @@ func (storage *RAMFileStorage) AuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(writer, request)
 		}
 	})
+}
+func (storage *RAMFileStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]ShortenURL, error) {
+	var result []ShortenURL
+	for _, item := range storage.userIDStrorage[userID] {
+		toSaveItem := ShortenURL{
+			URL:  storage.ramStorage[item],
+			Hash: item,
+		}
+		result = append(result, toSaveItem)
+	}
+	return result, nil
 }

@@ -42,6 +42,11 @@ type outputBatchStruct struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type batchByUserIDResponse struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
 func NewHandler(s Repository, g Generator, c HandlerConfig) *Handler {
 	return &Handler{
 		storage:   s,
@@ -285,7 +290,61 @@ func (handler *Handler) PostBatchHandler(writer http.ResponseWriter, request *ht
 }
 
 func (handler *Handler) GetByUserIDHandler(writer http.ResponseWriter, request *http.Request) {
+	cookie, err := request.Cookie(tools.JWTCookieKey)
 
+	if err != nil {
+		loggin.Log.Info("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	token, userID, err := tools.GetTokenAndUserID(cookie)
+	if err != nil || !token.Valid {
+		loggin.Log.Info("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	servShortURL := ""
+	// так как в тестах мы не используем флаги, нужно обезопасить себя
+	if handler.cfg.HandlerURL == "" {
+		servShortURL = "http://localhost:8080"
+	} else {
+		servShortURL = handler.cfg.HandlerURL
+	}
+
+	var resp []batchByUserIDResponse
+	savedURLs, err := handler.storage.ReadAllDataForUserID(request.Context(), userID)
+	if err != nil {
+		loggin.Log.Info("cannot read data for user", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, savedURL := range savedURLs {
+		resp = append(resp, batchByUserIDResponse{
+			ShortURL:    servShortURL + "/" + savedURL.Hash,
+			OriginalURL: savedURL.URL,
+		})
+		loggin.Log.Info("Readed from batch request", zap.String("body", savedURL.URL), zap.String("result", servShortURL+"/"+savedURL.Hash), zap.Int("userID", userID))
+	}
+
+	if len(resp) == 0 {
+		loggin.Log.Info("We find no urls for user", zap.Int("userID", userID))
+		writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+
+	loggin.Log.Info("After POST JSON request", zap.Int("count", len(resp)), zap.String("content-encoding", request.Header.Get("Content-Encoding")))
+
+	enc := json.NewEncoder(writer)
+	if err := enc.Encode(resp); err != nil {
+		loggin.Log.Debug("error encoding response", zap.Error(err))
+		return
+	}
 }
 
 func NewRouter(handler *Handler) chi.Router {

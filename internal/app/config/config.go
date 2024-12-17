@@ -32,6 +32,7 @@ func New() *Config {
 	}
 
 	loggin.Log.Debug("os: ", zap.String("args: ", args))
+
 	return &Config{
 		ServerConfig:  server.NewServerConfig(*addrFlag),
 		HandlerConfig: handlers.NewHandlerConfig(*urlFlag),

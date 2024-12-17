@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
@@ -47,4 +48,10 @@ func (m *MockStorage) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		next.ServeHTTP(writer, request)
 	})
+}
+
+func (m *MockStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]storage.ShortenURL, error) {
+	var urls []storage.ShortenURL
+
+	return urls, nil
 }
