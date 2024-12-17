@@ -317,7 +317,7 @@ func (dbStorage *DBStorage) AuthMiddleware(next http.Handler) http.Handler {
 }
 
 func (dbStorage *DBStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]ShortenURL, error) {
-	if dbStorage.DB != nil {
+	if dbStorage.DB == nil {
 		return []ShortenURL{}, errors.New("data base does not connected")
 	}
 
