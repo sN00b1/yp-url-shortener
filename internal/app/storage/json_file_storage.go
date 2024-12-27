@@ -8,10 +8,11 @@ import (
 )
 
 type ShortenURL struct {
-	ID     string `json:"uuid"`
-	Hash   string `json:"hash"`
-	URL    string `json:"url"`
-	UserID int    `json:"userid"`
+	ID        string `json:"uuid"`
+	Hash      string `json:"hash"`
+	URL       string `json:"url"`
+	UserID    int    `json:"userid"`
+	DeleteLog bool   `json:"deletelog"`
 }
 
 type Producer struct {
@@ -101,15 +102,15 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, err
 }
 
-func (fileStorage *FileStorage) ReadAllData(ramS map[string]string, userIDS map[int][]string, tmpUserIDs *[]int, lastUserID *int) error {
+func (fileStorage *FileStorage) ReadAllData(ramS map[string]ShortenURL, userIDS map[int][]ShortenURL, tmpUserIDs *[]int, lastUserID *int) error {
 	for {
 		readItem, err := fileStorage.consumer.ReadItem()
 		if err != nil {
 			break
 		}
 
-		ramS[readItem.Hash] = readItem.URL
-		userIDS[readItem.UserID] = append(userIDS[readItem.UserID], readItem.Hash)
+		ramS[readItem.Hash] = *readItem
+		userIDS[readItem.UserID] = append(userIDS[readItem.UserID], *readItem)
 
 		*tmpUserIDs = append(*tmpUserIDs, readItem.UserID)
 		if *lastUserID < readItem.UserID {

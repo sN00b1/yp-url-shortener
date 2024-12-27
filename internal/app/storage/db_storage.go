@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
@@ -41,8 +42,9 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 			id VARCHAR(255) PRIMARY KEY,
 			shortURL VARCHAR(255),
 			originalURL VARCHAR(255),
-			userID integer, 
-			UNIQUE(originalURL)
+			userID INT,
+			deleted BOOLEAN DEFAULT FALSE,
+			UNIQUE(originalURL, userID)
 		);
 		CREATE TABLE IF NOT EXISTS last_user_id (
 			id INT PRIMARY KEY DEFAULT 1
@@ -109,27 +111,27 @@ func (dbStorage *DBStorage) Save(url, hash string, userID int) error {
 	return nil
 }
 
-func (dbStorage *DBStorage) Get(hash string) (string, error) {
+func (dbStorage *DBStorage) Get(hash string) (ShortenURL, error) {
 	selectSQL := `
 		SELECT id, shortURL, originalURL, userID FROM urls WHERE shortURL = $1`
 
 	row, err := dbStorage.DB.Query(selectSQL, hash)
 	if err != nil {
-		return "", err
+		return ShortenURL{}, err
 	}
 
 	if row.Err() != nil {
-		return "", row.Err()
+		return ShortenURL{}, row.Err()
 	}
 
 	var obj ShortenURL
 	row.Next()
 	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
 	if err != nil {
-		return "", err
+		return ShortenURL{}, err
 	}
 
-	return obj.URL, nil
+	return obj, nil
 }
 
 func (dbStorage *DBStorage) Ping() error {
@@ -359,4 +361,36 @@ func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID
 	}
 
 	return savedURLs, err
+}
+
+func (dbStorage *DBStorage) DeleteByUserID(shortURLs []string, userID int) error {
+	stmt, err := dbStorage.DB.Prepare(`
+		UPDATE urls
+		SET deleted = TRUE
+		WHERE shortURL = ANY($1)
+		AND userID = $2;
+	`)
+	if err != nil {
+		loggin.Log.Error("Failed to prepare the statement: ", zap.Error(err))
+		return err
+	}
+	defer stmt.Close()
+
+	// Execute the statement
+	res, err := stmt.Exec(pq.Array(shortURLs), userID)
+	if err != nil {
+		loggin.Log.Error("Failed to execute the statement: ", zap.Error(err))
+		return err
+	}
+
+	// Check how many rows were affected
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		loggin.Log.Error("Failed to get the number of rows affected: ", zap.Error(err))
+		return err
+	}
+
+	loggin.Log.Info("Inserted new data to database", zap.Int64("count", rowsAffected))
+
+	return nil
 }

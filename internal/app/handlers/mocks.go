@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/mock"
 )
@@ -17,9 +18,9 @@ func (m *MockStorage) Save(url string, id string, userID int) error {
 	return args.Error(0)
 }
 
-func (m *MockStorage) Get(id string) (string, error) {
+func (m *MockStorage) Get(id string) (storage.ShortenURL, error) {
 	args := m.Called(id)
-	return args.String(0), args.Error(1)
+	return storage.ShortenURL{ID: uuid.NewString(), Hash: "0", URL: "http://ya.ru"}, args.Error(1)
 }
 
 func (m *MockStorage) Ping() error {
@@ -54,4 +55,8 @@ func (m *MockStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]s
 	var urls []storage.ShortenURL
 
 	return urls, nil
+}
+
+func (m *MockStorage) DeleteByUserID(shortURLs []string, userID int) error {
+	return nil
 }

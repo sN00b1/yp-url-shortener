@@ -17,8 +17,8 @@ import (
 )
 
 type RAMFileStorage struct {
-	ramStorage     map[string]string
-	userIDStrorage map[int][]string
+	ramStorage     map[string]ShortenURL
+	userIDStrorage map[int][]ShortenURL
 	fileStorage    *FileStorage
 	mutex          sync.RWMutex
 	cfg            StorageConfig
@@ -27,8 +27,8 @@ type RAMFileStorage struct {
 }
 
 func NewRAMFileStorage(config *StorageConfig) (*RAMFileStorage, error) {
-	var ramS = make(map[string]string)
-	var userIDS = make(map[int][]string)
+	var ramS = make(map[string]ShortenURL)
+	var userIDS = make(map[int][]ShortenURL)
 
 	var tmpUsers []int
 	fs, err := NewFileStorage(config.FilePath)
@@ -77,8 +77,8 @@ func (storage *RAMFileStorage) Save(url, hash string, userID int) error {
 	}
 
 	storage.mutex.RLock()
-	storage.ramStorage[hash] = url
-	storage.userIDStrorage[userID] = append(storage.userIDStrorage[userID], hash)
+	storage.ramStorage[hash] = item
+	storage.userIDStrorage[userID] = append(storage.userIDStrorage[userID], item)
 	storage.mutex.RUnlock()
 
 	if storage.fileStorage.isActive {
@@ -91,15 +91,15 @@ func (storage *RAMFileStorage) Save(url, hash string, userID int) error {
 	return nil
 }
 
-func (storage *RAMFileStorage) Get(hash string) (string, error) {
+func (storage *RAMFileStorage) Get(hash string) (ShortenURL, error) {
 	storage.mutex.RLock()
-	url, ok := storage.ramStorage[hash]
+	item, ok := storage.ramStorage[hash]
 	storage.mutex.RUnlock()
 
 	if !ok {
-		return "", errors.New("cant find url by hash")
+		return ShortenURL{}, errors.New("cant find url by hash")
 	}
-	return url, nil
+	return item, nil
 }
 
 func (storage *RAMFileStorage) Ping() error {
@@ -237,11 +237,29 @@ func (storage *RAMFileStorage) AuthMiddleware(next http.Handler) http.Handler {
 func (storage *RAMFileStorage) ReadAllDataForUserID(ctx context.Context, userID int) ([]ShortenURL, error) {
 	var result []ShortenURL
 	for _, item := range storage.userIDStrorage[userID] {
-		toSaveItem := ShortenURL{
-			URL:  storage.ramStorage[item],
-			Hash: item,
-		}
-		result = append(result, toSaveItem)
+		result = append(result, storage.ramStorage[item.Hash])
 	}
 	return result, nil
+}
+
+func (storage *RAMFileStorage) DeleteByUserID(shortURLs []string, userID int) error {
+	storage.mutex.Lock()
+	for k, v := range storage.ramStorage {
+		v.DeleteLog = true
+		for i := 0; i < len(storage.userIDStrorage[v.UserID]); i++ {
+			if storage.userIDStrorage[v.UserID][i].Hash == k {
+				storage.userIDStrorage[v.UserID][i].DeleteLog = true
+				break
+			}
+		}
+	}
+
+	if storage.fileStorage.isActive {
+		storage.fileStorage.DeleteFile()
+		for _, v := range storage.ramStorage {
+			storage.fileStorage.SaveURL(v)
+		}
+	}
+
+	return nil
 }

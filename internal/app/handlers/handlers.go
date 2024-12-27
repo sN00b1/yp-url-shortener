@@ -111,22 +111,28 @@ func (handler *Handler) Shorten(writer http.ResponseWriter, request *http.Reques
 
 func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request) {
 	hash := strings.TrimPrefix(request.URL.Path, "/")
-	url, err := handler.storage.Get(hash)
+	item, err := handler.storage.Get(hash)
 
 	loggin.Log.Debug("Expand:", zap.String("full url", request.URL.String()))
-	loggin.Log.Debug("Expand:", zap.String("find url", url))
+	loggin.Log.Debug("Expand:", zap.String("find url", item.URL))
+
+	if item.DeleteLog {
+		loggin.Log.Info("this url is deleted", zap.String("id", item.ID))
+		writer.WriteHeader(http.StatusGone)
+		return
+	}
 
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if url == "" {
+	if item.URL == "" {
 		http.Error(writer, "cant find url by hash", http.StatusNotFound)
 	}
 
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	writer.Header().Set("Location", url)
+	writer.Header().Set("Location", item.URL)
 	writer.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -322,11 +328,16 @@ func (handler *Handler) GetByUserIDHandler(writer http.ResponseWriter, request *
 	}
 
 	for _, savedURL := range savedURLs {
-		resp = append(resp, batchByUserIDResponse{
-			ShortURL:    servShortURL + "/" + savedURL.Hash,
-			OriginalURL: savedURL.URL,
-		})
-		loggin.Log.Info("Readed from batch request", zap.String("body", savedURL.URL), zap.String("result", servShortURL+"/"+savedURL.Hash), zap.Int("userID", userID))
+		if !savedURL.DeleteLog {
+			resp = append(resp, batchByUserIDResponse{
+				ShortURL:    servShortURL + "/" + savedURL.Hash,
+				OriginalURL: savedURL.URL,
+			})
+			loggin.Log.Info("Readed from batch request",
+				zap.String("body", savedURL.URL),
+				zap.String("result", servShortURL+"/"+savedURL.Hash),
+				zap.Int("userID", userID))
+		}
 	}
 
 	if len(resp) == 0 {
@@ -347,6 +358,55 @@ func (handler *Handler) GetByUserIDHandler(writer http.ResponseWriter, request *
 	}
 }
 
+func (handler *Handler) DeleteByUserIDHandler(writer http.ResponseWriter, request *http.Request) {
+	cookie, err := request.Cookie(tools.JWTCookieKey)
+
+	if err != nil {
+		loggin.Log.Info("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	token, userID, err := tools.GetTokenAndUserID(cookie)
+	if err != nil || !token.Valid {
+		loggin.Log.Info("cannot find cookie", zap.Error(err))
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var slice []string
+
+	body, err := io.ReadAll(request.Body)
+	if err != nil {
+		loggin.Log.Error("Error reading request body", zap.Error(err))
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer request.Body.Close()
+
+	err = json.Unmarshal(body, &slice)
+	if err != nil {
+		loggin.Log.Error("cannot decode request JSON body", zap.Error(err), zap.String("body", string(body)))
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Print the URLs to the console
+	for _, URL := range slice {
+		loggin.Log.Info("Try to delete", zap.String("ShortURL", URL), zap.Int("userID", userID))
+	}
+
+	// Start a new goroutine to perform the deletion
+	go func() {
+		err := handler.storage.DeleteByUserID(slice, userID)
+		if err != nil {
+			loggin.Log.Info("Can't delete by user id", zap.String("error", err.Error()))
+		}
+	}()
+
+	writer.WriteHeader(http.StatusAccepted)
+}
+
 func NewRouter(handler *Handler) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
@@ -359,5 +419,6 @@ func NewRouter(handler *Handler) chi.Router {
 	router.Get("/ping", handler.Ping)
 	router.Post("/api/shorten/batch", handler.PostBatchHandler)
 	router.Get("/api/user/urls", handler.GetByUserIDHandler)
+	router.Delete("/api/user/urls", handler.DeleteByUserIDHandler)
 	return router
 }
