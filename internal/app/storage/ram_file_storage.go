@@ -244,15 +244,22 @@ func (storage *RAMFileStorage) ReadAllDataForUserID(ctx context.Context, userID 
 
 func (storage *RAMFileStorage) DeleteByUserID(shortURLs []string, userID int) error {
 	storage.mutex.Lock()
-	for k, v := range storage.ramStorage {
-		v.DeleteLog = true
-		for i := 0; i < len(storage.userIDStrorage[v.UserID]); i++ {
-			if storage.userIDStrorage[v.UserID][i].Hash == k {
-				storage.userIDStrorage[v.UserID][i].DeleteLog = true
-				break
+	for _, v := range shortURLs {
+		item, ok := storage.ramStorage[v]
+
+		if ok {
+			item.DeleteLog = true
+			storage.ramStorage[v] = item
+
+			for i := 0; i < len(storage.userIDStrorage[item.UserID]); i++ {
+				if storage.userIDStrorage[item.UserID][i].Hash == item.Hash {
+					storage.userIDStrorage[item.UserID][i].DeleteLog = true
+					break
+				}
 			}
 		}
 	}
+	storage.mutex.Unlock()
 
 	if storage.fileStorage.isActive {
 		storage.fileStorage.DeleteFile()

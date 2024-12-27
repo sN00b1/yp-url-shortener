@@ -5,6 +5,9 @@ import (
 	"errors"
 	"os"
 	"sync"
+
+	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
+	"go.uber.org/zap"
 )
 
 type ShortenURL struct {
@@ -133,6 +136,18 @@ func (fileStorage *FileStorage) Close() error {
 func (fileStorage *FileStorage) SaveURL(obj ShortenURL) error {
 	err := fileStorage.producer.WriteItem(obj)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fileStorage *FileStorage) DeleteFile() error {
+	fileStorage.Close()
+	err := os.Remove(fileStorage.producer.file.Name())
+
+	if err != nil {
+		loggin.Log.Debug("cannot delete file", zap.String("Filename", fileStorage.producer.file.Name()))
 		return err
 	}
 
