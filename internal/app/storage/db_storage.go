@@ -281,15 +281,8 @@ func (dbStorage *DBStorage) AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		isBatchByUserID := request.Method == http.MethodGet && request.RequestURI == "/api/user/urls"
 
 		if err == http.ErrNoCookie {
-			if isBatchByUserID {
-				log.Println("No cookie and isBatchByUserID", zap.Error(err))
-				http.Error(writer, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
 			lastUserID, err := dbStorage.GetLastUserID(request.Context())
 			if err != nil {
 				log.Println("can't get userID for cookie", zap.Error(err))
