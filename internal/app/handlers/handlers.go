@@ -127,7 +127,8 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 		return
 	}
 
-	if item.URL == "" {
+	if item.Hash != hash {
+		loggin.Log.Error("cant find url by hash", zap.String("hash", hash), zap.String("item.Hash", item.Hash))
 		http.Error(writer, "cant find url by hash", http.StatusNotFound)
 		return
 	}
