@@ -376,6 +376,8 @@ func (dbStorage *DBStorage) DeleteByUserID(shortURLs []string, userID int) error
 	}
 	defer stmt.Close()
 
+	loggin.Log.Info("Deleting URLs", zap.Strings("hashes", shortURLs), zap.Int("userID", userID))
+
 	// Execute the statement
 	res, err := stmt.Exec(pq.Array(shortURLs), userID)
 	if err != nil {
@@ -390,7 +392,7 @@ func (dbStorage *DBStorage) DeleteByUserID(shortURLs []string, userID int) error
 		return err
 	}
 
-	loggin.Log.Info("Inserted new data to database", zap.Int64("count", rowsAffected))
+	loggin.Log.Info("Deleted URLs from database", zap.Int64("count", rowsAffected), zap.Int("userID", userID))
 
 	return nil
 }

@@ -396,9 +396,23 @@ func (handler *Handler) DeleteByUserIDHandler(writer http.ResponseWriter, reques
 		loggin.Log.Info("Try to delete", zap.String("ShortURL", URL), zap.Int("userID", userID))
 	}
 
+	hashes := make([]string, 0)
+	urlPrefix := handler.cfg.HandlerURL
+	if urlPrefix == "" {
+		urlPrefix = "http://localhost:8000"
+	}
+
+	for _, URL := range slice {
+		hash := strings.TrimPrefix(URL, urlPrefix+"/")
+		if hash != "" {
+			hashes = append(hashes, hash)
+			loggin.Log.Info("Found hash to delete", zap.String("hash", hash))
+		}
+	}
+
 	// Start a new goroutine to perform the deletion
 	go func() {
-		err := handler.storage.DeleteByUserID(slice, userID)
+		err := handler.storage.DeleteByUserID(hashes, userID)
 		if err != nil {
 			loggin.Log.Info("Can't delete by user id", zap.String("error", err.Error()))
 		}
