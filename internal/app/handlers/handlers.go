@@ -129,6 +129,7 @@ func (handler *Handler) Expand(writer http.ResponseWriter, request *http.Request
 
 	if item.URL == "" {
 		http.Error(writer, "cant find url by hash", http.StatusNotFound)
+		return
 	}
 
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
