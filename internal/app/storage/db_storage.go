@@ -13,7 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 	"github.com/sN00b1/yp-url-shortener/internal/app/loggin"
 	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 	"go.uber.org/zap"
