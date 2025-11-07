@@ -356,35 +356,78 @@ func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID
 }
 
 func (dbStorage *DBStorage) DeleteByUserID(shortURLs []string, userID int) error {
-	stmt, err := dbStorage.DB.Prepare(`
-		UPDATE urls
-		SET deleted = TRUE
-		WHERE shortURL = ANY($1)
-		AND userID = $2;
-	`)
-	if err != nil {
-		loggin.Log.Error("Failed to prepare the statement: ", zap.Error(err))
-		return err
-	}
-	defer stmt.Close()
+	var inputCh = make(chan []string)
+	chunks := tools.ChunkSlice(shortURLs, 100)
 
-	loggin.Log.Info("Deleting URLs", zap.Strings("hashes", shortURLs), zap.Int("userID", userID))
+	go func() {
+		defer close(inputCh)
+		for _, slice := range chunks {
+			inputCh <- slice
+		}
+	}()
 
-	// Execute the statement
-	res, err := stmt.Exec(pq.Array(shortURLs), userID)
-	if err != nil {
-		loggin.Log.Error("Failed to execute the statement: ", zap.Error(err))
-		return err
+	stats := dbStorage.DB.Stats()
+	workers := stats.MaxOpenConnections
+	if workers <= 0 {
+		workers = 4
 	}
 
-	// Check how many rows were affected
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		loggin.Log.Error("Failed to get the number of rows affected: ", zap.Error(err))
-		return err
+	errCh := make(chan error, workers)
+	var wg sync.WaitGroup
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for v := range inputCh {
+				stmt, err := dbStorage.DB.Prepare(`
+					UPDATE urls
+					SET deleted = TRUE
+					WHERE shortURL = ANY($1)
+					AND userID = $2;
+				`)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				loggin.Log.Info("Deleting URLs", zap.Strings("hashes", v), zap.Int("userID", userID))
+
+				res, err := stmt.Exec(pq.Array(v), userID)
+				if closeErr := stmt.Close(); closeErr != nil {
+					loggin.Log.Debug("failed to close prepared statement", zap.Error(closeErr))
+				}
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				rowsAffected, err := res.RowsAffected()
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				loggin.Log.Info("Deleted URLs from database", zap.Int64("count", rowsAffected), zap.Int("userID", userID))
+			}
+		}()
 	}
 
-	loggin.Log.Info("Deleted URLs from database", zap.Int64("count", rowsAffected), zap.Int("userID", userID))
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
 
-	return nil
+	var resultErr error
+	for err := range errCh {
+		if err == nil {
+			continue
+		}
+		if resultErr == nil {
+			resultErr = err
+		}
+		loggin.Log.Info("Internal error til working with database while deleting URLs:", zap.Error(err))
+	}
+
+	return resultErr
 }
