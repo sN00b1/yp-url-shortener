@@ -143,7 +143,7 @@ func NewDBStorage(cfg string) (*DBStorage, error) {
 }
 
 func (dbStorage *DBStorage) ReadAllData() error {
-	selectAllQuery := `SELECT id, shortURL, originalURL, userID FROM urls`
+	selectAllQuery := `SELECT id, shortURL, originalURL, userID, deleted FROM urls`
 
 	rows, err := dbStorage.DB.Query(selectAllQuery)
 	if err != nil {
@@ -155,7 +155,7 @@ func (dbStorage *DBStorage) ReadAllData() error {
 	dbStorage.lastUserID = 1
 	for rows.Next() {
 		var obj ShortenURL
-		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
+		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID, &obj.DeleteLog)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -186,7 +186,7 @@ func (dbStorage *DBStorage) Save(url, hash string, userID int) error {
 
 func (dbStorage *DBStorage) Get(hash string) (ShortenURL, error) {
 	selectSQL := `
-		SELECT id, shortURL, originalURL, userID FROM urls WHERE shortURL = $1`
+		SELECT id, shortURL, originalURL, userID, deleted FROM urls WHERE shortURL = $1`
 
 	row, err := dbStorage.DB.Query(selectSQL, hash)
 	if err != nil {
@@ -200,7 +200,7 @@ func (dbStorage *DBStorage) Get(hash string) (ShortenURL, error) {
 
 	var obj ShortenURL
 	row.Next()
-	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
+	err = row.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID, &obj.DeleteLog)
 	if err != nil {
 		return ShortenURL{}, err
 	}
@@ -403,7 +403,7 @@ func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID
 	var savedURLs []ShortenURL
 	var emptyURLs []ShortenURL
 
-	sqlStatement := `SELECT id, shortURL, originalURL, userID FROM urls where userID = $1`
+	sqlStatement := `SELECT id, shortURL, originalURL, userID, deleted FROM urls where userID = $1`
 	rows, err := dbStorage.DB.QueryContext(ctx, sqlStatement, userID)
 	if err != nil {
 		log.Println("Failed to read from database", zap.Error(err))
@@ -413,7 +413,7 @@ func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID
 
 	for rows.Next() {
 		var obj ShortenURL
-		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID)
+		err = rows.Scan(&obj.ID, &obj.Hash, &obj.URL, &obj.UserID, &obj.DeleteLog)
 		if err != nil {
 			log.Println("Failed to read from database", zap.Error(err))
 			return emptyURLs, err
