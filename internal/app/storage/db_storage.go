@@ -84,6 +84,7 @@ func (dbStorage *DBStorage) processDeleteJob(job deleteJob) error {
 		loggin.Log.Info("Deleting URLs", zap.Strings("hashes", chunk), zap.Int("userID", job.userID))
 
 		res, err := dbStorage.DB.ExecContext(ctx, query, pq.Array(chunk), job.userID)
+
 		if err != nil {
 			return err
 		}
@@ -191,6 +192,7 @@ func (dbStorage *DBStorage) Get(hash string) (ShortenURL, error) {
 	if err != nil {
 		return ShortenURL{}, err
 	}
+	defer row.Close()
 
 	if row.Err() != nil {
 		return ShortenURL{}, row.Err()
@@ -220,13 +222,13 @@ func (dbStorage *DBStorage) SaveBatchURLs(toSave []ShortenURL, userID int) error
 		log.Println(err.Error())
 		return nil
 	}
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("INSERT INTO urls(id, shortURL, originalURL, userID) VALUES($1, $2, $3, $4)")
 	if err != nil {
 		log.Println(err.Error())
 		return nil
 	}
-
 	defer stmt.Close()
 
 	for _, saveURL := range toSave {
