@@ -19,11 +19,84 @@ import (
 )
 
 type DBStorage struct {
-	DB          *sql.DB
-	IsActive    bool
-	lastUserID  int
-	mutex       sync.RWMutex
-	usedUserIDs []int
+	DB            *sql.DB
+	IsActive      bool
+	lastUserID    int
+	mutex         sync.RWMutex
+	usedUserIDs   []int
+	deleteOnce    sync.Once
+	deleteJobs    chan deleteJob
+	deleteWorkers int
+}
+
+type deleteJob struct {
+	shortURLs []string
+	userID    int
+	result    chan error
+}
+
+const deleteWorkerDefault = 4
+const deleteChunkSize = 100
+
+func (dbStorage *DBStorage) initDeletePool() {
+	dbStorage.deleteOnce.Do(func() {
+		workerCount := deleteWorkerDefault
+		stats := dbStorage.DB.Stats()
+		if stats.MaxOpenConnections > 0 && stats.MaxOpenConnections < workerCount {
+			workerCount = stats.MaxOpenConnections
+		}
+		if workerCount <= 0 {
+			workerCount = 1
+		}
+
+		dbStorage.deleteWorkers = workerCount
+		dbStorage.deleteJobs = make(chan deleteJob, workerCount*2)
+
+		for i := 0; i < workerCount; i++ {
+			go dbStorage.deleteWorker()
+		}
+	})
+}
+
+func (dbStorage *DBStorage) deleteWorker() {
+	for job := range dbStorage.deleteJobs {
+		err := dbStorage.processDeleteJob(job)
+		job.result <- err
+		close(job.result)
+	}
+}
+
+func (dbStorage *DBStorage) processDeleteJob(job deleteJob) error {
+	ctx := context.Background()
+	query := `
+		UPDATE urls
+		SET deleted = TRUE
+		WHERE shortURL = ANY($1)
+		AND userID = $2;
+	`
+
+	chunks := tools.ChunkSlice(job.shortURLs, deleteChunkSize)
+	for _, chunk := range chunks {
+		if len(chunk) == 0 {
+			continue
+		}
+
+		loggin.Log.Info("Deleting URLs", zap.Strings("hashes", chunk), zap.Int("userID", job.userID))
+
+		res, err := dbStorage.DB.ExecContext(ctx, query, pq.Array(chunk), job.userID)
+		if err != nil {
+			return err
+		}
+
+		rowsAffected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		loggin.Log.Info("Deleted URLs from database", zap.Int64("count", rowsAffected), zap.Int("userID", job.userID))
+	}
+
+	return nil
 }
 
 func NewDBStorage(cfg string) (*DBStorage, error) {
@@ -356,78 +429,23 @@ func (dbStorage *DBStorage) SelectSavedURLsForUserID(ctx context.Context, userID
 }
 
 func (dbStorage *DBStorage) DeleteByUserID(shortURLs []string, userID int) error {
-	var inputCh = make(chan []string)
-	chunks := tools.ChunkSlice(shortURLs, 100)
-
-	go func() {
-		defer close(inputCh)
-		for _, slice := range chunks {
-			inputCh <- slice
-		}
-	}()
-
-	stats := dbStorage.DB.Stats()
-	workers := stats.MaxOpenConnections
-	if workers <= 0 {
-		workers = 4
+	if len(shortURLs) == 0 {
+		return nil
 	}
 
-	errCh := make(chan error, workers)
-	var wg sync.WaitGroup
-
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for v := range inputCh {
-				stmt, err := dbStorage.DB.Prepare(`
-					UPDATE urls
-					SET deleted = TRUE
-					WHERE shortURL = ANY($1)
-					AND userID = $2;
-				`)
-				if err != nil {
-					errCh <- err
-					return
-				}
-
-				loggin.Log.Info("Deleting URLs", zap.Strings("hashes", v), zap.Int("userID", userID))
-
-				res, err := stmt.Exec(pq.Array(v), userID)
-				if closeErr := stmt.Close(); closeErr != nil {
-					loggin.Log.Debug("failed to close prepared statement", zap.Error(closeErr))
-				}
-				if err != nil {
-					errCh <- err
-					return
-				}
-
-				rowsAffected, err := res.RowsAffected()
-				if err != nil {
-					errCh <- err
-					return
-				}
-
-				loggin.Log.Info("Deleted URLs from database", zap.Int64("count", rowsAffected), zap.Int("userID", userID))
-			}
-		}()
+	dbStorage.initDeletePool()
+	resultCh := make(chan error, 1)
+	job := deleteJob{
+		shortURLs: append([]string(nil), shortURLs...),
+		userID:    userID,
+		result:    resultCh,
 	}
 
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
-
-	var resultErr error
-	for err := range errCh {
-		if err == nil {
-			continue
-		}
-		if resultErr == nil {
-			resultErr = err
-		}
-		loggin.Log.Info("Internal error til working with database while deleting URLs:", zap.Error(err))
+	select {
+	case dbStorage.deleteJobs <- job:
+	case <-time.After(5 * time.Second):
+		return errors.New("timeout enqueueing delete job")
 	}
 
-	return resultErr
+	return <-resultCh
 }
