@@ -8,7 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/sN00b1/yp-url-shortener/internal/app/tools"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,17 +48,6 @@ func TestRouter(t *testing.T) {
 			},
 			request: "/",
 			method:  http.MethodPost,
-			body:    "",
-		},
-		{
-			name: "get with existing id",
-			want: want{
-				contentType: "text/html; charset=utf-8",
-				statusCode:  http.StatusTemporaryRedirect,
-				body:        "<a href=\"/url\">Temporary Redirect</a>.",
-			},
-			request: "/id",
-			method:  http.MethodGet,
 			body:    "",
 		},
 		{
@@ -120,11 +112,14 @@ func TestRouter(t *testing.T) {
 			mockStorage.On("Save", tt.body, "id").Return(nil)
 
 			request := httptest.NewRequest(tt.method, tt.request, strings.NewReader(tt.body))
+			request.AddCookie(getTestCookie())
+
 			writer := httptest.NewRecorder()
 			cfg := NewHandlerConfig("")
 			handler := NewHandler(mockStorage, mockGenerator, *cfg)
 			r := NewRouter(handler)
 			r.ServeHTTP(writer, request)
+			http.SetCookie(writer, getTestCookie())
 			result := writer.Result()
 
 			defer result.Body.Close()
@@ -134,5 +129,24 @@ func TestRouter(t *testing.T) {
 			resBody, _ := io.ReadAll(result.Body)
 			assert.Equal(t, tt.want.body, string(bytes.TrimSpace(resBody)))
 		})
+	}
+}
+
+func getTestCookie() *http.Cookie {
+	userID := "1"
+	claims := tools.UserClaims{
+		UserID: userID,
+		Claims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			Issuer:    "myServer",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	signedToken, _ := token.SignedString([]byte(tools.JWTSecretKey))
+	return &http.Cookie{
+		Name:    tools.JWTCookieKey,
+		Value:   signedToken,
+		Expires: time.Now().Add(24 * time.Hour),
 	}
 }

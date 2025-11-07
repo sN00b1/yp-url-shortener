@@ -1,8 +1,21 @@
 package handlers
 
+import (
+	"context"
+	"net/http"
+
+	"github.com/sN00b1/yp-url-shortener/internal/app/storage"
+)
+
 type Repository interface {
-	Save(url, hash string) error
-	Get(hash string) (string, error)
+	Save(url, hash string, userID int) error
+	Get(hash string) (storage.ShortenURL, error)
+	Ping() error
+	SaveBatchURLs(toSave []storage.ShortenURL, userID int) error
+	DeInit()
+	AuthMiddleware(next http.Handler) http.Handler
+	ReadAllDataForUserID(ctx context.Context, userID int) ([]storage.ShortenURL, error)
+	DeleteByUserID(shortURLs []string, userID int) error
 }
 
 type Generator interface {
